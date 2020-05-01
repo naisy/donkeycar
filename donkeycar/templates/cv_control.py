@@ -32,8 +32,9 @@ class MyCVController:
         steering = 0.0 # from zero to one
         throttle = 0.2 # from -1 to 1
         recording = False # Set to true if desired to save camera frames
+        assist_mode = False # If True, AI output on when mode(user|local|local_angle|assist) is assist and assist_mode(assist|off, rc4 3ch button) is assit mode.
 
-        return steering, throttle, recording
+        return steering, throttle, recording, assist_mode
 
 
 

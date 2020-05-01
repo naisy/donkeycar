@@ -42,6 +42,7 @@ class RemoteWebServer():
         self.throttle = 0.
         self.mode = 'user'
         self.recording = False
+        self.assist_mode = False
         # use one session for all requests
         self.session = requests.Session()
 
@@ -59,7 +60,7 @@ class RemoteWebServer():
         ''' 
         Return the last state given from the remote server.
         '''
-        return self.angle, self.throttle, self.mode, self.recording
+        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
 
     def run(self):
         '''
@@ -114,6 +115,7 @@ class LocalWebController(tornado.web.Application):
         self.throttle = 0.0
         self.mode = mode
         self.recording = False
+        self.assist_mode = False
         self.port = port
         
         self.num_records = 0
@@ -150,11 +152,11 @@ class LocalWebController(tornado.web.Application):
                 for wsclient in self.wsclients:
                     wsclient.write_message(json.dumps({'num_records': self.num_records}))
         
-        return self.angle, self.throttle, self.mode, self.recording
+        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
         
     def run(self, img_arr=None):
         self.img_arr = img_arr
-        return self.angle, self.throttle, self.mode, self.recording
+        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
 
     def shutdown(self):
         pass

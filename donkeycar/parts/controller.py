@@ -663,6 +663,23 @@ class RC3ChanJoystick(Joystick):
         }
 
 
+class RC4ChanJoystick(Joystick):
+    #An interface to a physical joystick available at /dev/input/js1
+    def __init__(self, *args, **kwargs):
+        super(RC4ChanJoystick, self).__init__(*args, **kwargs)
+
+        self.button_names = {
+            0x120 : 'Recording',
+            0x121 : 'Delete',
+        }
+
+
+        self.axis_names = {
+            0x1 : 'Throttle',
+            0x0 : 'Steering',
+        }
+
+
 class JoystickController(object):
     '''
     JoystickController is a base class. You will not use this class directly,
@@ -685,11 +702,12 @@ class JoystickController(object):
                  steering_scale=1.0,
                  throttle_dir=-1.0,
                  dev_fn='/dev/input/js0',
+                 mode='user',
                  auto_record_on_throttle=True):
 
         self.angle = 0.0
         self.throttle = 0.0
-        self.mode = 'user'
+        self.mode = mode
         self.poll_delay = poll_delay
         self.running = True
         self.last_throttle_axis_val = 0
@@ -706,6 +724,7 @@ class JoystickController(object):
         self.estop_state = self.ES_IDLE
         self.chaos_monkey_steering = None
         self.dead_zone = 0.0
+        self.assist_mode = False
 
         self.button_down_trigger_map = {}
         self.button_up_trigger_map = {}
@@ -975,14 +994,14 @@ class JoystickController(object):
                 return 0.0, self.throttle, self.mode, False
 
         if self.chaos_monkey_steering is not None:
-            return self.chaos_monkey_steering, self.throttle, self.mode, False
+            return self.chaos_monkey_steering, self.throttle, self.mode, False, self.assist_mode
 
-        return self.angle, self.throttle, self.mode, self.recording
+        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
 
 
     def run(self, img_arr=None):
         raise Exception("We expect for this part to be run with the threaded=True argument.")
-        return None, None, None, None
+        return None, None, None, None, None
 
 
     def shutdown(self):
@@ -1410,6 +1429,83 @@ class RC3ChanJoystickController(JoystickController):
         }
 
 
+class RC4ChanJoystickController(JoystickController):
+    #A Controller object that maps inputs to actions
+    def __init__(self, *args, **kwargs):
+        super(RC4ChanJoystickController, self).__init__(*args, **kwargs)
+        self.manual_mode = False
+        self.assist_mode = False
+        self.num_records_to_erase = 60
+
+    def init_js(self):
+        #attempt to init joystick
+        try:
+            self.js = RC4ChanJoystick(self.dev_fn)
+            self.js.init()
+        except FileNotFoundError:
+            print(self.dev_fn, "not found.")
+            self.js = None
+        return self.js is not None
+
+    def on_steering(self, val, reverse = True):
+        if reversed:
+            val *= -1
+        self.set_steering(val)
+
+    def on_throttle(self, val, reverse = True):
+        if self.mode == 'user':
+            if self.manual_mode:
+                self.recording = True
+        elif self.mode == 'assist':
+            if self.assist_mode:
+                self.recording = True
+        if reversed:
+            val *= -1
+        self.set_throttle(val)
+
+    def on_switch_ch3_manual(self):
+        if self.mode == 'user':
+            print("on_switch_ch3_manual")
+            if not self.manual_mode:
+                self.manual_mode = True
+        elif self.mode == 'assist':
+            print("on_switch_ch3_assist")
+            if not self.assist_mode:
+                self.assist_mode = True
+
+    def on_switch_ch3_auto(self):
+        if self.mode == 'user':
+            print("on_switch_ch3_auto")
+        elif self.mode == 'assist':
+            print("on_switch_ch3_off")
+        self.recording = False
+        self.manual_mode = False
+        self.assist_mode = False
+
+    def on_switch_ch4(self):
+        if self.mode == 'user':
+            self.erase_last_N_records()
+        elif self.mode == 'assist':
+            self.erase_last_N_records()
+
+    def init_trigger_maps(self):
+        #init set of mapping from buttons to function calls
+
+        self.button_down_trigger_map = {
+            'Recording' : self.on_switch_ch3_auto,
+            'Delete' : self.on_switch_ch4,
+        }
+
+        self.button_up_trigger_map = {
+            'Recording' : self.on_switch_ch3_manual,
+        }
+
+        self.axis_trigger_map = {
+            'Steering' : self.on_steering,
+            'Throttle' : self.on_throttle,
+        }
+
+
 class JoyStickPub(object):
     '''
     Use Zero Message Queue (zmq) to publish the control messages from a local joystick
@@ -1505,6 +1601,8 @@ def get_js_controller(cfg):
         cont_class = LogitechJoystickController
     elif cfg.CONTROLLER_TYPE == "rc3":
         cont_class = RC3ChanJoystickController
+    elif cfg.CONTROLLER_TYPE == "rc4":
+        cont_class = RC4ChanJoystickController
     elif cfg.CONTROLLER_TYPE == "pygame":
         cont_class = PyGamePS4JoystickController
     else:
@@ -1514,7 +1612,8 @@ def get_js_controller(cfg):
                                 throttle_scale=cfg.JOYSTICK_MAX_THROTTLE,
                                 steering_scale=cfg.JOYSTICK_STEERING_SCALE,
                                 auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE,
-                                dev_fn=cfg.JOYSTICK_DEVICE_FILE)
+                                dev_fn=cfg.JOYSTICK_DEVICE_FILE,
+                                mode=cfg.JOYSTICK_MODE)
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
     return ctr
@@ -1535,7 +1634,7 @@ if __name__ == "__main__":
     v = donkeycar.vehicle.Vehicle()
     p = PyGamePS4JoystickController()
     v.add(p, inputs=['cam/image_array'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
+          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording', 'assist/mode'],
           threaded=True)
     v.start(max_loop_count = 100)
     
