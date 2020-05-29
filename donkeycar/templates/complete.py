@@ -438,14 +438,8 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
 
             elif mode == 'assist':
                 if assist:
-                    if user_angle != 0.0:
-                        angle = pilot_angle * (1.0 - cfg.USER_STEERING_ASSIST_RATE) + user_angle * cfg.USER_STEERING_ASSIST_RATE
-                    else:
-                        angle = pilot_angle
-                    if user_throttle != 0.0:
-                        throttle = pilot_throttle * (1.0 - cfg.USER_THROTTLE_ASSIST_RATE) + user_throttle * cfg.USER_THROTTLE_ASSIST_RATE
-                    else:
-                        throttle = pilot_throttle
+                    angle = user_angle
+                    throttle = user_throttle + pilot_throttle
                 else:
                     angle = user_angle
                     throttle = user_throttle
@@ -459,6 +453,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
                 elif throttle < -1:
                     throttle = -1.0
                 return angle, throttle
+
             else:
                 return pilot_angle if pilot_angle else 0.0, pilot_throttle * cfg.AI_THROTTLE_MULT if pilot_throttle else 0.0
 

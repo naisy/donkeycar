@@ -158,14 +158,8 @@ def drive(cfg, model_path=None, model_type=None):
             
             elif mode == 'assist':
                 if assist:
-                    if user_angle != 0.0:
-                        angle = pilot_angle * (1.0 - cfg.USER_STEERING_ASSIST_RATE) + user_angle * cfg.USER_STEERING_ASSIST_RATE
-                    else:
-                        angle = pilot_angle
-                    if user_throttle != 0.0:
-                        throttle = pilot_throttle * (1.0 - cfg.USER_THROTTLE_ASSIST_RATE) + user_throttle * cfg.USER_THROTTLE_ASSIST_RATE
-                    else:
-                        throttle = pilot_throttle
+                    angle = user_angle
+                    throttle = user_throttle + pilot_throttle
                 else:
                     angle = user_angle
                     throttle = user_throttle

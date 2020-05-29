@@ -154,10 +154,6 @@ USE_FPV = False                     # send camera data to FPV webserver
 JOYSTICK_DEVICE_FILE = "/dev/input/js0" # this is the unix file use to access the joystick.
 JOYSTICK_MODE = 'user'              #(user|assist) assist is only rc4.
 
-#User assist. from 0.0 to 1.0. 0.0: only ai driving. value > 0: if user control, use this rate for user control.
-USER_STEERING_ASSIST_RATE = 1.0
-USER_THROTTLE_ASSIST_RATE = 1.0
-
 #For the categorical model, this limits the upper bound of the learned throttle
 #it's very IMPORTANT that this value is matched from the training PC config.py and the robot.py
 #and ideally wouldn't change once set.
