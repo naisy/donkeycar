@@ -16,8 +16,10 @@ class PCA9685:
     '''
     def __init__(self, channel, address=0x40, frequency=60, busnum=None, init_delay=0.1):
 
-        self.default_freq = 60
+        self.default_freq = frequency
         self.pwm_scale = frequency / self.default_freq
+        self.pwm_counter = 0
+        self.pwm_start = time.time()
 
         import Adafruit_PCA9685
         # Initialise the PCA9685 using the default address (0x40).
@@ -36,7 +38,13 @@ class PCA9685:
         try:
             self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
         except:
-            self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
+            print("PCA9685 SET ERROR!")
+        self.pwm_counter += 1
+        current_time = time.time()
+        if current_time - self.pwm_start >= 1.0:
+            print("channel: {} fps: {}".format(self.channel, self.pwm_counter / (current_time - self.pwm_start)))
+            self.pwm_start = current_time
+            self.pwm_counter = 0
 
     def run(self, pulse):
         self.set_pulse(pulse)
