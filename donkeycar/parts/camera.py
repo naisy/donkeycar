@@ -183,7 +183,10 @@ class CSICamera(BaseCamera):
     def poll_camera(self):
         import cv2
         self.ret , frame = self.camera.read()
-        self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if self.ret:
+            self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        else:
+            print("camera read error")
 
     def run(self):
         self.poll_camera()
