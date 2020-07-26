@@ -698,12 +698,14 @@ class JoystickController(object):
 
 
     def __init__(self, poll_delay=0.0,
+                 throttle_adder=0.3,
                  throttle_scale=1.0,
                  steering_scale=1.0,
                  throttle_dir=-1.0,
                  dev_fn='/dev/input/js0',
                  mode='user',
-                 auto_record_on_throttle=True):
+                 auto_record_on_throttle=True,
+                 num_records_to_erase=100):
 
         self.angle = 0.0
         self.throttle = 0.0
@@ -711,6 +713,7 @@ class JoystickController(object):
         self.poll_delay = poll_delay
         self.running = True
         self.last_throttle_axis_val = 0
+        self.throttle_adder = throttle_adder
         self.throttle_scale = throttle_scale
         self.steering_scale = steering_scale
         self.throttle_dir = throttle_dir
@@ -720,7 +723,7 @@ class JoystickController(object):
         self.dev_fn = dev_fn
         self.js = None
         self.tub = None
-        self.num_records_to_erase = 100
+        self.num_records_to_erase = num_records_to_erase
         self.estop_state = self.ES_IDLE
         self.chaos_monkey_steering = None
         self.dead_zone = 0.0
@@ -879,7 +882,15 @@ class JoystickController(object):
     def set_throttle(self, axis_val):
         #this value is often reversed, with positive value when pulling down
         self.last_throttle_axis_val = axis_val
-        self.throttle = (self.throttle_dir * axis_val * self.throttle_scale)
+        if self.recording:
+            print("recording: {}".format(self.recording))
+            self.throttle = (self.throttle_dir * axis_val * self.throttle_scale + self.throttle_adder)
+            if self.throttle > 1.0:
+                self.throttle = 1.0
+            elif self.throttle < -1.0:
+                self.throttle = 1.0
+        else:
+            self.throttle = (self.throttle_dir * axis_val * self.throttle_scale)
         #print("throttle", self.throttle)
         self.on_throttle_changes()
 
@@ -892,6 +903,7 @@ class JoystickController(object):
             print('auto record on throttle is enabled.')
         elif self.recording:
             self.recording = False
+            self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop throttle_adder
         else:
             self.recording = True
 
@@ -1435,7 +1447,6 @@ class RC4ChanJoystickController(JoystickController):
         super(RC4ChanJoystickController, self).__init__(*args, **kwargs)
         self.manual_mode = False
         self.assist_mode = False
-        self.num_records_to_erase = 60
 
     def init_js(self):
         #attempt to init joystick
@@ -1481,6 +1492,7 @@ class RC4ChanJoystickController(JoystickController):
         self.recording = False
         self.manual_mode = False
         self.assist_mode = False
+        self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop throttle_adder
 
     def on_switch_ch4(self):
         if self.mode == 'user':
@@ -1609,11 +1621,13 @@ def get_js_controller(cfg):
         raise( Exception("Unknown controller type: " + cfg.CONTROLLER_TYPE))
 
     ctr = cont_class(throttle_dir=cfg.JOYSTICK_THROTTLE_DIR,
+                                throttle_adder=cfg.JOYSTICK_ADD_THROTTLE,
                                 throttle_scale=cfg.JOYSTICK_MAX_THROTTLE,
                                 steering_scale=cfg.JOYSTICK_STEERING_SCALE,
                                 auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE,
                                 dev_fn=cfg.JOYSTICK_DEVICE_FILE,
-                                mode=cfg.JOYSTICK_MODE)
+                                mode=cfg.JOYSTICK_MODE,
+                                num_records_to_erase=cfg.DRIVE_LOOP_HZ)
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
     return ctr
