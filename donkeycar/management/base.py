@@ -506,7 +506,7 @@ class ShowCnnActivations(BaseCommand):
 
 class ShowPredictionPlots(BaseCommand):
 
-    def plot_predictions(self, cfg, tub_paths, model_path, limit, model_type):
+    def plot_predictions(self, cfg, tub_paths, model_path, start, limit, model_type):
         '''
         Plot model predictions for angle and throttle against data from tubs.
 
@@ -527,7 +527,7 @@ class ShowPredictionPlots(BaseCommand):
         pilot_angles = []
         pilot_throttles = []       
 
-        records = records[:limit]
+        records = records[start:start+limit]
         num_records = len(records)
         print('processing %d records:' % num_records)
 
@@ -556,19 +556,27 @@ class ShowPredictionPlots(BaseCommand):
         ax1 = fig.add_subplot(211)
         ax2 = fig.add_subplot(212)
 
+        # pandas DataFrame shift
+        # https://stackoverflow.com/questions/10982089/how-to-shift-a-column-in-pandas-dataframe
+        # you can add the empty row with something like: shift_pos = 1 and, df = df.append(pd.DataFrame([[np.nan for i in df.columns] for i in range(shift_pos)], columns=df.columns)) – epifanio Dec 29 '20 at 15:04
+        angles_df = angles_df.append(pd.DataFrame([[np.nan for i in angles_df.columns] for i in range(start+limit)], columns=angles_df.columns))
+        angles_df = angles_df.shift(periods=start+limit)
+        throttles_df = throttles_df.append(pd.DataFrame([[np.nan for i in throttles_df.columns] for i in range(start+limit)], columns=throttles_df.columns))
+        throttles_df = throttles_df.shift(periods=start+limit)
+
         angles_df.plot(ax=ax1)
         throttles_df.plot(ax=ax2)
 
         ax1.legend(loc=4)
         ax2.legend(loc=4)
-
-        plt.savefig(model_path + '_pred.png')
+        plt.savefig(f'{model_path}_pred_{start}_{start+limit}.png')
         plt.show()
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='tubplot', usage='%(prog)s [options]')
         parser.add_argument('--tub', nargs='+', help='The tub to make plot from')
         parser.add_argument('--model', default=None, help='name of record to create histogram')
+        parser.add_argument('--start', type=int, default=0, help='start record position')
         parser.add_argument('--limit', type=int, default=1000, help='how many records to process')
         parser.add_argument('--type', default=None, help='model type')
         parser.add_argument('--config', default='./config.py', help='location of config file to use. default: ./config.py')
@@ -579,7 +587,7 @@ class ShowPredictionPlots(BaseCommand):
         args = self.parse_args(args)
         args.tub = ','.join(args.tub)
         cfg = load_config(args.config)
-        self.plot_predictions(cfg, args.tub, args.model, args.limit, args.type)
+        self.plot_predictions(cfg, args.tub, args.model, args.start, args.limit, args.type)
         
 
 class TubAugment(BaseCommand):
