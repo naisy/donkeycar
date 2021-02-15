@@ -121,6 +121,8 @@ class LocalWebController(tornado.web.Application):
         self.num_records = 0
         self.wsclients = []
 
+        self.hz_counter = 0
+        self.hz_start = time.time()
 
         handlers = [
             (r"/", RedirectHandler, dict(url="/drive")),
@@ -147,6 +149,12 @@ class LocalWebController(tornado.web.Application):
     def run_threaded(self, img_arr=None, num_records=0):
         self.img_arr = img_arr
         self.num_records = num_records
+        current_time = time.time()
+        self.hz_counter += 1
+        if current_time - self.hz_start >= 1.0:
+            print("LocalWebController - fps: {}".format(self.hz_counter / (current_time - self.hz_start)))
+            self.hz_start = current_time
+            self.hz_counter = 0
 
         # Send record count to websocket clients
         if (self.num_records is not None and self.recording is True):
