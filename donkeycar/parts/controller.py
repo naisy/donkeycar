@@ -837,6 +837,9 @@ class JoystickController(object):
     def update(self):
         '''
         poll a joystick for input events
+        No need poll_delay. Because this part reads usb serial.
+        If the joystick data is flowing but the read is sleeping,
+        the data will be lost. 
         '''
 
         #wait for joystick to be online
@@ -864,7 +867,7 @@ class JoystickController(object):
                 '''
                 self.button_up_trigger_map[button]()
 
-            time.sleep(self.poll_delay)
+            #time.sleep(self.poll_delay)
 
     def do_nothing(self, param):
         '''assign no action to the given axis
