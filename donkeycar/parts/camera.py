@@ -133,14 +133,14 @@ class CSICamera(BaseCamera):
     gstreamer init string from https://github.com/NVIDIA-AI-IOT/jetbot/blob/master/jetbot/camera.py
     '''
     def gstreamer_pipeline(self, capture_width=3280, capture_height=2464, output_width=224, output_height=224, framerate=21, flip_method=0) :   
-        return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink' % (
+        return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink max-buffers=1 drop=True' % (
                 capture_width, capture_height, framerate, flip_method, output_width, output_height)
     
     #def __init__(self, image_w=160, image_h=120, image_d=3, capture_width=3280, capture_height=2464, framerate=60, gstreamer_flip=0):
     # USE 360
     #def __init__(self, image_w=204, image_h=154, image_d=3, capture_width=3264, capture_height=2464, framerate=21, gstreamer_flip=0):
     # USE 120FPS
-    def __init__(self, image_w=160, image_h=120, image_d=3, capture_width=1280, capture_height=720, framerate=120, gstreamer_flip=0):
+    def __init__(self, image_w=160, image_h=90, image_d=3, capture_width=1280, capture_height=720, framerate=120, gstreamer_flip=0):
 
         '''
         gstreamer_flip = 0 - no flip
@@ -156,6 +156,12 @@ class CSICamera(BaseCamera):
         self.capture_width = capture_width
         self.capture_height = capture_height
         self.framerate = framerate
+        self.pers_file = 'perspectiveCalibrate.xml'
+        ret, self.mapx, self.mapy, roi, K, D, R, T, CM = self.load_pers()
+        self.roi_x, self.roi_y, self.roi_w, self.roi_h = roi
+        self.roi_y = 50
+        self.roi_h = 40
+
 
     def init_camera(self):
         import cv2
@@ -184,7 +190,9 @@ class CSICamera(BaseCamera):
         import cv2
         self.ret , frame = self.camera.read()
         if self.ret:
-            self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            dst = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+            dst = dst[self.roi_y:self.roi_y+self.roi_h, self.roi_x:self.roi_x+self.roi_w]
+            self.frame = cv2.cvtColor(dst, cv2.COLOR_BGR2RGB)
         else:
             print("camera read error")
 
@@ -200,6 +208,35 @@ class CSICamera(BaseCamera):
         print('stoping CSICamera')
         time.sleep(.5)
         del(self.camera)
+
+    def load_pers(self):
+        import cv2
+        ret = False
+        fs_read = None
+        mapx = None
+        mapy = None
+        roi = None
+        try:
+            fs_read = cv2.FileStorage(self.pers_file, cv2.FILE_STORAGE_READ)
+            mapx = fs_read.getNode('MAPX').mat()
+            mapy = fs_read.getNode('MAPY').mat()
+            roi = fs_read.getNode('ROI').mat().T[0].astype(int)
+            persK = fs_read.getNode('K').mat()
+            persD = fs_read.getNode('D').mat()
+            persR = fs_read.getNode('R').mat()
+            persT = fs_read.getNode('T').mat()
+            newcameramtx = fs_read.getNode('CM').mat()
+            ret = True
+            print(f'Load {self.pers_file} - OK')
+        except:
+            print(os.getcwd())
+            print(f'Load {self.pers_file} - NG')
+        finally:
+            if fs_read is not None:
+                fs_read.release()
+
+        return ret, mapx, mapy, roi, persK, persD, persR, persT, newcameramtx
+
 
 class V4LCamera(BaseCamera):
     '''
@@ -316,3 +353,4 @@ class ImageListCamera(BaseCamera):
 
     def shutdown(self):
         pass
+

@@ -23,6 +23,7 @@ class TensorRTLinear(KerasPilot):
         self.outputs = None
         self.bindings = None
         self.stream = None
+        self.cfg.TARGET_H = 40
 
     def compile(self):
         print('Nothing to compile')
