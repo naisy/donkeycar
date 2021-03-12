@@ -324,7 +324,6 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     
     img_in = Input(shape=input_shape, name='img_in')
     x = img_in
-    """ default
     x = Convolution2D(24, (5,5), strides=(2,2), activation='relu', name="conv2d_1")(x)
     x = Dropout(drop)(x)
     x = Convolution2D(32, (5,5), strides=(2,2), activation='relu', name="conv2d_2")(x)
@@ -334,15 +333,6 @@ def default_n_linear(num_outputs, input_shape=(120, 160, 3), roi_crop=(0, 0)):
     x = Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_4")(x)
     x = Dropout(drop)(x)
     x = Convolution2D(64, (3,3), strides=(1,1), activation='relu', name="conv2d_5")(x)
-    x = Dropout(drop)(x)
-    """
-    x = Convolution2D(16, (5,5), strides=(2,2), activation='relu', name="conv2d_1")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(32, (5,5), strides=(2,2), activation='relu', name="conv2d_2")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(32, (3,3), strides=(1,1), activation='relu', name="conv2d_3")(x)
-    x = Dropout(drop)(x)
-    x = Convolution2D(32, (3,3), strides=(1,1), activation='relu', name="conv2d_4")(x)
     x = Dropout(drop)(x)
 
     x = Flatten(name='flattened')(x)

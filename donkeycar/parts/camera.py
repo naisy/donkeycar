@@ -159,8 +159,6 @@ class CSICamera(BaseCamera):
         self.pers_file = 'perspectiveCalibrate.xml'
         ret, self.mapx, self.mapy, roi, K, D, R, T, CM = self.load_pers()
         self.roi_x, self.roi_y, self.roi_w, self.roi_h = roi
-        self.roi_y = 50
-        self.roi_h = 40
 
 
     def init_camera(self):
