@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import glob
 from donkeycar.utils import rgb2gray
+import cv2
 
 class BaseCamera:
 
@@ -132,7 +133,7 @@ class CSICamera(BaseCamera):
     Credit: https://github.com/feicccccccc/donkeycar/blob/dev/donkeycar/parts/camera.py
     gstreamer init string from https://github.com/NVIDIA-AI-IOT/jetbot/blob/master/jetbot/camera.py
     '''
-    def gstreamer_pipeline(self, capture_width=3280, capture_height=2464, output_width=224, output_height=224, framerate=21, flip_method=0) :   
+    def gstreamer_pipeline(self, capture_width=3280, capture_height=2464, output_width=224, output_height=224, framerate=21, flip_method=0) :
         return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink max-buffers=1 drop=True' % (
                 capture_width, capture_height, framerate, flip_method, output_width, output_height)
     
@@ -156,14 +157,15 @@ class CSICamera(BaseCamera):
         self.capture_width = capture_width
         self.capture_height = capture_height
         self.framerate = framerate
-        self.pers_file = 'perspectiveCalibrate.xml'
-        ret, self.mapx, self.mapy, roi, K, D, R, T, CM = self.load_pers()
-        self.roi_x, self.roi_y, self.roi_w, self.roi_h = roi
+        self.camera_calibration = False
+
+        if self.camera_calibration:
+            self.pers_file = 'perspectiveCalibrate.xml'
+            ret, self.mapx, self.mapy, roi, K, D, R, T, CM = self.load_pers()
+            self.roi_x, self.roi_y, self.roi_w, self.roi_h = roi
 
 
     def init_camera(self):
-        import cv2
-
         # initialize the camera and stream
         self.camera = cv2.VideoCapture(
             self.gstreamer_pipeline(
@@ -185,12 +187,14 @@ class CSICamera(BaseCamera):
             self.poll_camera()
 
     def poll_camera(self):
-        import cv2
         self.ret , frame = self.camera.read()
         if self.ret:
-            dst = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-            dst = dst[self.roi_y:self.roi_y+self.roi_h, self.roi_x:self.roi_x+self.roi_w]
-            self.frame = cv2.cvtColor(dst, cv2.COLOR_BGR2RGB)
+            if self.camera_calibration:
+                dst = cv2.remap(frame, self.mapx, self.mapy, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+                dst = dst[self.roi_y:self.roi_y+self.roi_h, self.roi_x:self.roi_x+self.roi_w]
+                self.frame = cv2.cvtColor(dst, cv2.COLOR_BGR2RGB)
+            else:
+                self.frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         else:
             print("camera read error")
 
@@ -208,7 +212,6 @@ class CSICamera(BaseCamera):
         del(self.camera)
 
     def load_pers(self):
-        import cv2
         ret = False
         fs_read = None
         mapx = None
