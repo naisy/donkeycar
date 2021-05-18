@@ -1,10 +1,11 @@
+
 # Keras Parts
 
 These parts encapsulate models defined using the [Keras](https://keras.io/) high level api. They are intended to be used with the Tensorflow backend. The parts are designed to use the trained artificial neural network to reproduce the steering and throttle given the image the camera sees. They are created by using the [train command](/guide/train_autopilot/).
 
 ## Keras Categorical
 
-This model type is created with the `--type=catagorical`. 
+This model type is created with the `--type=categorical`. 
 
 The `KerasCategorical` pilot breaks the steering and throttle decisions into discreet angles and then uses categorical cross entropy to train the network to activate a single neuron for each steering and throttle choice. This can be interesting because we get the confidence value as a distribution over all choices.
 This uses the `dk.utils.linear_bin` and `dk.utils.linear_unbin` to transform continuous real numbers into a range of discreet values for training and runtime.

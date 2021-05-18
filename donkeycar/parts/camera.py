@@ -36,7 +36,6 @@ class PiCamera(BaseCamera):
         print('PiCamera loaded.. .warming camera')
         time.sleep(2)
 
-
     def run(self):
         f = next(self.stream)
         frame = f.array
@@ -68,6 +67,7 @@ class PiCamera(BaseCamera):
         self.stream.close()
         self.rawCapture.close()
         self.camera.close()
+
 
 class Webcam(BaseCamera):
     def __init__(self, image_w=160, image_h=120, image_d=3, framerate = 20, iCam = 0):
@@ -123,7 +123,7 @@ class Webcam(BaseCamera):
     def shutdown(self):
         # indicate that the thread should be stopped
         self.on = False
-        print('stoping Webcam')
+        print('stopping Webcam')
         time.sleep(.5)
 
 
@@ -140,8 +140,8 @@ class CSICamera(BaseCamera):
     #def __init__(self, image_w=160, image_h=120, image_d=3, capture_width=3280, capture_height=2464, framerate=60, gstreamer_flip=0):
     # USE 360
     #def __init__(self, image_w=204, image_h=154, image_d=3, capture_width=3264, capture_height=2464, framerate=21, gstreamer_flip=0):
-    # USE 120FPS
-    def __init__(self, image_w=160, image_h=90, image_d=3, capture_width=1280, capture_height=720, framerate=120, gstreamer_flip=0):
+    # USE 60FPS (OpenCV maximum fps is 60) 
+    def __init__(self, image_w=160, image_h=90, image_d=3, capture_width=1280, capture_height=720, framerate=60, gstreamer_flip=0):
 
         '''
         gstreamer_flip = 0 - no flip
@@ -163,7 +163,6 @@ class CSICamera(BaseCamera):
             self.pers_file = 'perspectiveCalibrate.xml'
             ret, self.mapx, self.mapy, roi, K, D, R, T, CM = self.load_pers()
             self.roi_x, self.roi_y, self.roi_w, self.roi_h = roi
-
 
     def init_camera(self):
         # initialize the camera and stream
@@ -207,7 +206,7 @@ class CSICamera(BaseCamera):
     
     def shutdown(self):
         self.running = False
-        print('stoping CSICamera')
+        print('stopping CSICamera')
         time.sleep(.5)
         del(self.camera)
 
@@ -279,7 +278,6 @@ class V4LCamera(BaseCamera):
         # Start the device. This lights the LED if it's a camera that has one.
         self.video.start()
 
-
     def update(self):
         import select
         from donkeycar.parts.image import JpgToImgArr
@@ -293,11 +291,9 @@ class V4LCamera(BaseCamera):
             image_data = self.video.read_and_queue()
             self.frame = jpg_conv.run(image_data)
 
-
     def shutdown(self):
         self.running = False
         time.sleep(0.5)
-
 
 
 class MockCamera(BaseCamera):
@@ -316,11 +312,12 @@ class MockCamera(BaseCamera):
     def shutdown(self):
         pass
 
+
 class ImageListCamera(BaseCamera):
     '''
     Use the images from a tub as a fake camera output
     '''
-    def __init__(self, path_mask='~/mycar/data/**/*.jpg'):
+    def __init__(self, path_mask='~/mycar/data/**/images/*.jpg'):
         self.image_filenames = glob.glob(os.path.expanduser(path_mask), recursive=True)
     
         def get_image_index(fnm):
@@ -354,4 +351,3 @@ class ImageListCamera(BaseCamera):
 
     def shutdown(self):
         pass
-

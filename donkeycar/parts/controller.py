@@ -1,4 +1,3 @@
-
 import os
 import array
 import time
@@ -229,6 +228,108 @@ class PyGameJoystick(object):
         self.dead_zone = val
 
 
+class RCReceiver:
+    """
+    Class to read PWM from an RC control and convert into a float output number.
+    Uses pigpio library. The code is essentially a copy of
+    http://abyz.me.uk/rpi/pigpio/code/read_PWM_py.zip. You will need a voltage
+    divider from a 5V RC receiver to a 3.3V Pi input pin if the receiver runs
+    on 5V. If your receiver accepts 3.3V input, then it can be connected
+    directly to the Pi.
+    """
+    MIN_OUT = -1
+    MAX_OUT = 1
+
+    def __init__(self, gpio, invert=False, jitter=0.025, no_action=None):
+        """
+        :param gpio: gpio pin connected to RC channel
+        :param invert: invert value of run() within [MIN_OUT,MAX_OUT]
+        :param jitter: threshold below which no signal is reported
+        :param no_action: value within [MIN_OUT,MAX_OUT] if no RC signal is
+                          sent. This is usually zero for throttle and steering
+                          being the center values when the controls are not
+                          pressed.
+        """
+        import pigpio
+        self.pi = pigpio.pi()
+        self.gpio = gpio
+        self.high_tick = None
+        self.period = None
+        self.high = None
+        self.min_pwm = 1000
+        self.max_pwm = 2000
+        self.invert = invert
+        self.jitter = jitter
+        if no_action is not None:
+            self.no_action = no_action
+        else:
+            self.no_action = (self.MAX_OUT - self.MIN_OUT) / 2.0
+
+        self.factor = (self.MAX_OUT - self.MIN_OUT) / (self.max_pwm - self.min_pwm)
+        self.pi.set_mode(self.gpio, pigpio.INPUT)
+        self.cb = self.pi.callback(self.gpio, pigpio.EITHER_EDGE, self._cbf)
+        print('RCReceiver gpio ' + str(gpio) + ' created')
+
+    def _update_param(self, tick):
+        """ Helper function for callback function _cbf.
+        :param tick: current tick in mu s
+        :return: difference in ticks
+        """
+        import pigpio
+        if self.high_tick is not None:
+            t = pigpio.tickDiff(self.high_tick, tick)
+            return t
+
+    def _cbf(self, gpio, level, tick):
+        """ Callback function for pigpio interrupt gpio. Signature is determined
+            by pigpiod library. This function is called every time the gpio
+            changes state as we specified EITHER_EDGE.
+        :param gpio: gpio to listen for state changes
+        :param level: rising/falling edge
+        :param tick: # of mu s since boot, 32 bit int
+        """
+        if level == 1:
+            self.period = self._update_param(tick)
+            self.high_tick = tick
+        elif level == 0:
+            self.high = self._update_param(tick)
+
+    def pulse_width(self):
+        """
+        :return: the PWM pulse width in microseconds.
+        """
+        if self.high is not None:
+            return self.high
+        else:
+            return 0.0
+
+    def run(self):
+        """
+        Donkey parts interface, returns pulse mapped into [MIN_OUT,MAX_OUT] or
+        [MAX_OUT,MIN_OUT]
+        """
+        # signal is a value in [0, (MAX_OUT-MIN_OUT)]
+        signal = (self.pulse_width() - self.min_pwm) * self.factor
+        # Assuming non-activity if the pulse is at no_action point
+        is_action = abs(signal - self.no_action) > self.jitter
+        # if deemed noise assume no signal
+        if not is_action:
+            signal = self.no_action
+        # convert into min max interval
+        if self.invert:
+            signal = -signal + self.MAX_OUT
+        else:
+            signal += self.MIN_OUT
+        return signal, is_action
+
+    def shutdown(self):
+        """
+        Donkey parts interface
+        """
+        import pigpio
+        self.cb.cancel()
+
+
 class JoystickCreator(Joystick):
     '''
     A Helper class to create a new joystick mapping
@@ -356,11 +457,11 @@ class PS4Joystick(Joystick):
         self.axis_names = {
             0x00 : 'left_stick_horz',
             0x01 : 'left_stick_vert',
-            0x02 : 'right_stick_horz',
-            0x05 : 'right_stick_vert',
+            0x03 : 'right_stick_horz',
+            0x04 : 'right_stick_vert',
 
-            0x03 : 'left_trigger_axis',
-            0x04 : 'right_trigger_axis',
+            0x02 : 'left_trigger_axis',
+            0x05 : 'right_trigger_axis',
 
             0x10 : 'dpad_leftright',
             0x11 : 'dpad_updown',
@@ -376,21 +477,21 @@ class PS4Joystick(Joystick):
 
         self.button_names = {
 
-            0x130 : 'square',
-            0x131 : 'cross',
-            0x132 : 'circle',
+            0x134 : 'square',
+            0x130 : 'cross',
+            0x131 : 'circle',
             0x133 : 'triangle',
 
-            0x134 : 'L1',
-            0x135 : 'R1',
+            0x138 : 'L1',
+            0x139 : 'R1',
             0x136 : 'L2',
             0x137 : 'R2',
             0x13a : 'L3',
             0x13b : 'R3',
 
             0x13d : 'pad',
-            0x138 : 'share',
-            0x139 : 'options',
+            0x13a : 'share',
+            0x13b : 'options',
             0x13c : 'PS',
         }
 
@@ -517,14 +618,14 @@ class XboxOneJoystick(Joystick):
         super(XboxOneJoystick, self).__init__(*args, **kwargs)
 
         self.axis_names = {
-            0x00: 'left_stick_horz',
-            0x01: 'left_stick_vert',
-            0x02: 'right_stick_horz',
-            0x05: 'right_stick_vert',
-            0x09: 'right_trigger',
-            0x0a: 'left_trigger',
-            0x10: 'dpad_horz',
-            0x11: 'dpad_vert',
+            0x00 : 'left_stick_horz',
+            0x01 : 'left_stick_vert',
+            0x05 : 'right_stick_vert',
+            0x02 : 'right_stick_horz',
+            0x0a : 'left_trigger',
+            0x09 : 'right_trigger',
+            0x10 : 'dpad_horiz',
+            0x11 : 'dpad_vert'
         }
 
         self.button_names = {
@@ -532,11 +633,10 @@ class XboxOneJoystick(Joystick):
             0x131: 'b_button',
             0x133: 'x_button',
             0x134: 'y_button',
+            0x13b: 'options',
             0x136: 'left_shoulder',
             0x137: 'right_shoulder',
-            0x13b: 'options',
         }
-
 
 class LogitechJoystick(Joystick):
     '''
@@ -698,22 +798,21 @@ class JoystickController(object):
 
 
     def __init__(self, poll_delay=0.0,
-                 throttle_adder=0.3,
+                 add_throttle=0.0,
                  throttle_scale=1.0,
                  steering_scale=1.0,
                  throttle_dir=-1.0,
                  dev_fn='/dev/input/js0',
-                 mode='user',
                  auto_record_on_throttle=True,
-                 num_records_to_erase=100):
+                 num_records_to_erase=60):
 
         self.angle = 0.0
         self.throttle = 0.0
-        self.mode = mode
+        self.mode = 'user'
         self.poll_delay = poll_delay
         self.running = True
         self.last_throttle_axis_val = 0
-        self.throttle_adder = throttle_adder
+        self.add_throttle = add_throttle
         self.throttle_scale = throttle_scale
         self.steering_scale = steering_scale
         self.throttle_dir = throttle_dir
@@ -727,7 +826,6 @@ class JoystickController(object):
         self.estop_state = self.ES_IDLE
         self.chaos_monkey_steering = None
         self.dead_zone = 0.0
-        self.assist_mode = False
 
         self.button_down_trigger_map = {}
         self.button_up_trigger_map = {}
@@ -887,7 +985,7 @@ class JoystickController(object):
         self.last_throttle_axis_val = axis_val
         if self.recording:
             print("recording: {}".format(self.recording))
-            self.throttle = (self.throttle_dir * axis_val * self.throttle_scale + self.throttle_adder)
+            self.throttle = (self.throttle_dir * axis_val * self.throttle_scale + self.add_throttle)
             if self.throttle > 1.0:
                 self.throttle = 1.0
             elif self.throttle < -1.0:
@@ -905,8 +1003,7 @@ class JoystickController(object):
         if self.auto_record_on_throttle:
             print('auto record on throttle is enabled.')
         elif self.recording:
-            self.recording = False
-            self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop throttle_adder
+            self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop add_throttle
         else:
             self.recording = True
 
@@ -1009,14 +1106,14 @@ class JoystickController(object):
                 return 0.0, self.throttle, self.mode, False
 
         if self.chaos_monkey_steering is not None:
-            return self.chaos_monkey_steering, self.throttle, self.mode, False, self.assist_mode
+            return self.chaos_monkey_steering, self.throttle, self.mode, False
 
-        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
+        return self.angle, self.throttle, self.mode, self.recording
 
 
     def run(self, img_arr=None):
         raise Exception("We expect for this part to be run with the threaded=True argument.")
-        return None, None, None, None, None
+        return None, None, None, None
 
 
     def shutdown(self):
@@ -1449,7 +1546,6 @@ class RC4ChanJoystickController(JoystickController):
     def __init__(self, *args, **kwargs):
         super(RC4ChanJoystickController, self).__init__(*args, **kwargs)
         self.manual_mode = False
-        self.assist_mode = False
 
     def init_js(self):
         #attempt to init joystick
@@ -1470,9 +1566,6 @@ class RC4ChanJoystickController(JoystickController):
         if self.mode == 'user':
             if self.manual_mode:
                 self.recording = True
-        elif self.mode == 'assist':
-            if self.assist_mode:
-                self.recording = True
         if reversed:
             val *= -1
         self.set_throttle(val)
@@ -1482,25 +1575,16 @@ class RC4ChanJoystickController(JoystickController):
             print("on_switch_ch3_manual")
             if not self.manual_mode:
                 self.manual_mode = True
-        elif self.mode == 'assist':
-            print("on_switch_ch3_assist")
-            if not self.assist_mode:
-                self.assist_mode = True
 
     def on_switch_ch3_auto(self):
         if self.mode == 'user':
             print("on_switch_ch3_auto")
-        elif self.mode == 'assist':
-            print("on_switch_ch3_off")
         self.recording = False
         self.manual_mode = False
-        self.assist_mode = False
-        self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop throttle_adder
+        self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop add_throttle
 
     def on_switch_ch4(self):
         if self.mode == 'user':
-            self.erase_last_N_records()
-        elif self.mode == 'assist':
             self.erase_last_N_records()
 
     def init_trigger_maps(self):
@@ -1624,42 +1708,24 @@ def get_js_controller(cfg):
         raise( Exception("Unknown controller type: " + cfg.CONTROLLER_TYPE))
 
     ctr = cont_class(throttle_dir=cfg.JOYSTICK_THROTTLE_DIR,
-                                throttle_adder=cfg.JOYSTICK_ADD_THROTTLE,
+                                add_throttle=cfg.JOYSTICK_ADD_THROTTLE,
                                 throttle_scale=cfg.JOYSTICK_MAX_THROTTLE,
                                 steering_scale=cfg.JOYSTICK_STEERING_SCALE,
                                 auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE,
                                 dev_fn=cfg.JOYSTICK_DEVICE_FILE,
-                                mode=cfg.JOYSTICK_MODE,
                                 num_records_to_erase=cfg.DRIVE_LOOP_HZ)
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
     return ctr
 
-if __name__ == "__main__":
-    '''
-    publish ps3 controller
-    when running from ubuntu 16.04, it will interfere w mouse until:
-    xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0
-    '''
-    print("You may need:")
-    print('xinput set-prop "Sony PLAYSTATION(R)3 Controller" "Device Enabled" 0')
-    #p = JoyStickPub()
 
-    
-    #Ps4 pygame controller test.
-    import donkeycar
-    v = donkeycar.vehicle.Vehicle()
-    p = PyGamePS4JoystickController()
-    v.add(p, inputs=['cam/image_array'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording', 'assist/mode'],
-          threaded=True)
-    v.start(max_loop_count = 100)
-    
-    '''
-    j = PyGamePS4Joystick(which_js=0)
-    i = 0
-    while i < 100:
-        j.poll()
-        time.sleep(0.1)
-        i += 1
-    '''
+if __name__ == "__main__":
+    # Testing the XboxOneJoystickController
+    js = XboxOneJoystick('/dev/input/js0')
+    js.init()
+
+    while True:
+        button, button_state, axis, axis_val = js.poll()
+        if button is not None or axis is not None:
+            print(button, button_state, axis, axis_val)
+            time.sleep(0.1)

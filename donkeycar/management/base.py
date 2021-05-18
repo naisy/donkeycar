@@ -1,22 +1,23 @@
-
-import shutil
 import argparse
-import json
-import uuid
-
-from socket import *
 import os
-from threading import Thread
+import shutil
+import socket
+import stat
+import sys
+from socket import *
 
+from progress.bar import IncrementalBar
 import donkeycar as dk
-from donkeycar.parts.datastore import Tub
-from donkeycar.utils import *
-from donkeycar.management.tub import TubManager
 from donkeycar.management.joystick_creator import CreateJoystick
+from donkeycar.management.tub import TubManager
+from donkeycar.utils import *
 import numpy as np
 
 PACKAGE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 TEMPLATES_PATH = os.path.join(PACKAGE_PATH, 'templates')
+
+HELP_CONFIG = 'location of config file to use. default: ./config.py'
+
 
 def make_dir(path):
     real_path = os.path.expanduser(path)
@@ -58,33 +59,13 @@ class CreateCar(BaseCommand):
         parser.add_argument('--path', default=None, help='path where to create car folder')
         parser.add_argument('--template', default=None, help='name of car template to use')
         parser.add_argument('--overwrite', action='store_true', help='should replace existing files')
-        
         parsed_args = parser.parse_args(args)
         return parsed_args
         
     def run(self, args):
         args = self.parse_args(args)
         self.create_car(path=args.path, template=args.template, overwrite=args.overwrite)
-
-    def check_guid(self, filename):
-        with open(filename, "rt") as infile:
-            text = infile.read()
-        guid_setting = 'GYM_CONF["guid"]'
-        if guid_setting in text:
-            return
-
-        # if no GYM_CONF dict, then ignore the guid
-        if not 'GYM_CONF' in text:
-            return
-
-        with open(filename, "at") as outfile:
-            # make a random UUID
-            guid = uuid.uuid4()
-            comment = "# This random string identifies this robot in a race. Should remain constant."
-            outfile.write("\n\n%s\n" % comment)
-            outfile.write('%s = "%s"\n' % (guid_setting, guid))
-
-    
+  
     def create_car(self, path, template='complete', overwrite=False):
         """
         This script sets up the folder structure for donkey to work.
@@ -92,11 +73,9 @@ class CreateCar(BaseCommand):
         docker can build the folder structure for docker to mount to.
         """
 
-        #these are neeeded incase None is passed as path
+        # these are neeeded incase None is passed as path
         path = path or '~/mycar'
         template = template or 'complete'
-
-
         print("Creating car folder: {}".format(path))
         path = make_dir(path)
         
@@ -106,7 +85,7 @@ class CreateCar(BaseCommand):
         for fp in folder_paths:
             make_dir(fp)
             
-        #add car application and config files if they don't exist
+        # add car application and config files if they don't exist
         app_template_path = os.path.join(TEMPLATES_PATH, template+'.py')
         config_template_path = os.path.join(TEMPLATES_PATH, 'cfg_' + template + '.py')
         myconfig_template_path = os.path.join(TEMPLATES_PATH, 'myconfig.py')
@@ -116,36 +95,40 @@ class CreateCar(BaseCommand):
         car_config_path = os.path.join(path, 'config.py')
         mycar_config_path = os.path.join(path, 'myconfig.py')
         train_app_path = os.path.join(path, 'train.py')
-        calibrate_app_path = os.path.join(path, 'calibrate.py')        
+        calibrate_app_path = os.path.join(path, 'calibrate.py')
         
         if os.path.exists(car_app_path) and not overwrite:
             print('Car app already exists. Delete it and rerun createcar to replace.')
         else:
             print("Copying car application template: {}".format(template))
             shutil.copyfile(app_template_path, car_app_path)
-            
+            os.chmod(car_app_path, stat.S_IRWXU)
+
         if os.path.exists(car_config_path) and not overwrite:
             print('Car config already exists. Delete it and rerun createcar to replace.')
         else:
             print("Copying car config defaults. Adjust these before starting your car.")
             shutil.copyfile(config_template_path, car_config_path)
- 
+
         if os.path.exists(train_app_path) and not overwrite:
             print('Train already exists. Delete it and rerun createcar to replace.')
         else:
             print("Copying train script. Adjust these before starting your car.")
             shutil.copyfile(train_template_path, train_app_path)
-            
+            os.chmod(train_app_path, stat.S_IRWXU)
+
         if os.path.exists(calibrate_app_path) and not overwrite:
             print('Calibrate already exists. Delete it and rerun createcar to replace.')
         else:
             print("Copying calibrate script. Adjust these before starting your car.")
             shutil.copyfile(calibrate_template_path, calibrate_app_path)
+            os.chmod(calibrate_app_path, stat.S_IRWXU)
 
         if not os.path.exists(mycar_config_path):
             print("Copying my car config overrides")
             shutil.copyfile(myconfig_template_path, mycar_config_path)
-            #now copy file contents from config to myconfig, with all lines commented out.
+            # now copy file contents from config to myconfig, with all lines
+            # commented out.
             cfg = open(car_config_path, "rt")
             mcfg = open(mycar_config_path, "at")
             copy = False
@@ -156,9 +139,6 @@ class CreateCar(BaseCommand):
                     mcfg.write("# " + line)
             cfg.close()
             mcfg.close()
-
-        # ensure that we have a GUID
-        self.check_guid(mycar_config_path)
  
         print("Donkey setup complete.")
 
@@ -184,7 +164,6 @@ class FindCar(BaseCommand):
     def parse_args(self, args):
         pass        
 
-        
     def run(self, args):
         print('Looking up your computer IP address...')
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -195,11 +174,12 @@ class FindCar(BaseCommand):
         
         print("Finding your car's IP address...")
         cmd = "sudo nmap -sP " + ip + "/24 | awk '/^Nmap/{ip=$NF}/B8:27:EB/{print ip}'"
+        cmdRPi4 = "sudo nmap -sP " + ip + "/24 | awk '/^Nmap/{ip=$NF}/DC:A6:32/{print ip}'"
         print("Your car's ip address is:" )
         os.system(cmd)
-        
-        
-        
+        os.system(cmdRPi4)
+
+
 class CalibrateCar(BaseCommand):    
     
     def parse_args(self, args):
@@ -268,13 +248,14 @@ class MakeMovieShell(BaseCommand):
         parser = argparse.ArgumentParser(prog='makemovie')
         parser.add_argument('--tub', help='The tub to make movie from')
         parser.add_argument('--out', default='tub_movie.mp4', help='The movie filename to create. default: tub_movie.mp4')
-        parser.add_argument('--config', default='./config.py', help='location of config file to use. default: ./config.py')
+        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
         parser.add_argument('--model', default=None, help='the model to use to show control outputs')
         parser.add_argument('--type', default=None, required=False, help='the model type to load')
         parser.add_argument('--salient', action="store_true", help='should we overlay salient map showing activations')
         parser.add_argument('--start', type=int, default=0, help='first frame to process')
         parser.add_argument('--end', type=int, default=-1, help='last frame to process')
         parser.add_argument('--scale', type=int, default=2, help='make image frame output larger by X mult')
+        parser.add_argument('--draw-user-input', default=True, action='store_false', help='show user input on the video')
         parsed_args = parser.parse_args(args)
         return parsed_args, parser
 
@@ -289,147 +270,6 @@ class MakeMovieShell(BaseCommand):
 
         mm = MakeMovie()
         mm.run(args, parser)
-
-
-class TubCheck(BaseCommand):
-    def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubcheck', usage='%(prog)s [options]')
-        parser.add_argument('tubs', nargs='+', help='paths to tubs')
-        parser.add_argument('--fix', action='store_true', help='remove problem records')
-        parser.add_argument('--delete_empty', action='store_true', help='delete tub dir with no records')
-        parsed_args = parser.parse_args(args)
-        return parsed_args
-
-    def check(self, tub_paths, fix=False, delete_empty=False):
-        '''
-        Check for any problems. Looks at tubs and find problems in any records or images that won't open.
-        If fix is True, then delete images and records that cause problems.
-        '''
-        cfg = load_config('config.py')
-        tubs = gather_tubs(cfg, tub_paths)
-
-        for tub in tubs:
-            tub.check(fix=fix)
-            if delete_empty and tub.get_num_records() == 0:
-                import shutil
-                print("removing empty tub", tub.path)
-                shutil.rmtree(tub.path)
-
-    def run(self, args):
-        args = self.parse_args(args)
-        self.check(args.tubs, args.fix, args.delete_empty)
-
-
-class ShowHistogram(BaseCommand):
-
-    def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubhist', usage='%(prog)s [options]')
-        parser.add_argument('--tub', nargs='+', help='paths to tubs')
-        parser.add_argument('--record', default=None, help='name of record to create histogram')
-        parser.add_argument('--out', default=None, help='path where to save histogram end with .png')
-        parsed_args = parser.parse_args(args)
-        return parsed_args
-
-    def show_histogram(self, tub_paths, record_name, out):
-        '''
-        Produce a histogram of record type frequency in the given tub
-        '''
-        from matplotlib import pyplot as plt
-        from donkeycar.parts.datastore import TubGroup
-
-        output = out or os.path.basename(tub_paths)
-        tg = TubGroup(tub_paths=tub_paths)
-
-        if record_name is not None:
-            tg.df[record_name].hist(bins=50)
-        else:
-            tg.df.hist(bins=50)
-  
-        try:
-            if out is not None:
-                filename = output
-            else:
-                if record_name is not None:
-                    filename = output + '_hist_%s.png' % record_name.replace('/', '_')
-                else:
-                    filename = output + '_hist.png'
-            plt.savefig(filename)
-            print('saving image to:', filename)
-        except Exception as e:
-            print(e)
-        plt.show()
-
-    def run(self, args):
-        args = self.parse_args(args)
-        args.tub = ','.join(args.tub)
-        self.show_histogram(args.tub, args.record, args.out)
-
-
-class ConSync(BaseCommand):
-    '''
-    continuously rsync data
-    '''
-    
-    def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='consync', usage='%(prog)s [options]')
-        parser.add_argument('--dir', default='./cont_data/', help='paths to tubs')
-        parser.add_argument('--delete', default='y', help='remove files locally that were deleted remotely y=yes n=no')
-        parsed_args = parser.parse_args(args)
-        return parsed_args
-
-    def run(self, args):
-        args = self.parse_args(args)
-        cfg = load_config('config.py')
-        dest_dir = args.dir
-        del_arg = ""
-
-        if args.delete == 'y':
-            reply = input('WARNING:this rsync operation will delete data in the target dir: %s. ok to proceeed? [y/N]: ' % dest_dir)
-
-            if reply != 'y' and reply != "Y":
-                return
-            del_arg = "--delete"
-
-        if not dest_dir[-1] == '/' and not dest_dir[-1] == '\\':
-            print("Desination dir should end with a /")
-            return
-
-        try:
-            os.mkdir(dest_dir)
-        except:
-            pass
-
-        while True:
-            command = "rsync -aW --progress %s@%s:%s/data/ %s %s" %\
-                (cfg.PI_USERNAME, cfg.PI_HOSTNAME, cfg.PI_DONKEY_ROOT, dest_dir, del_arg)
-
-            os.system(command)
-            time.sleep(5)
-
-
-class ConTrain(BaseCommand):
-    '''
-    continuously train data
-    '''
-    
-    def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='contrain', usage='%(prog)s [options]')
-        parser.add_argument('--tub', default='./cont_data/*', help='paths to tubs')
-        parser.add_argument('--model', default='./models/drive.h5', help='path to model')
-        parser.add_argument('--transfer', default=None, help='path to transfer model')
-        parser.add_argument('--type', default='categorical', help='type of model (linear|categorical|rnn|imu|behavior|3d)')
-        parser.add_argument('--aug', action="store_true", help='perform image augmentation')        
-        parsed_args = parser.parse_args(args)
-        return parsed_args
-
-    def run(self, args):
-        args = self.parse_args(args)
-        cfg = load_config('config.py')
-        import sys
-        sys.path.append('.')
-        from train import multi_train
-        continuous = True
-        multi_train(cfg, args.tub, args.model, args.transfer, args.type, continuous, args.aug)
 
 
 class ShowCnnActivations(BaseCommand):
@@ -450,7 +290,7 @@ class ShowCnnActivations(BaseCommand):
         image_path = os.path.expanduser(image_path)
 
         model = load_model(model_path, compile=False)
-        image = load_scaled_image_arr(image_path, cfg)[None, ...]
+        image = load_image(image_path, cfg)[None, ...]
 
         conv_layer_names = self.get_conv_layers(model)
         input_layer = model.get_layer(name='img_in').input
@@ -492,7 +332,7 @@ class ShowCnnActivations(BaseCommand):
         parser = argparse.ArgumentParser(prog='cnnactivations', usage='%(prog)s [options]')
         parser.add_argument('--image', help='path to image')
         parser.add_argument('--model', default=None, help='path to model')
-        parser.add_argument('--config', default='./config.py', help='location of config file to use. default: ./config.py')
+        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
         
         parsed_args = parser.parse_args(args)
         return parsed_args
@@ -521,21 +361,30 @@ class ShowPredictionPlots(BaseCommand):
             model_type = cfg.DEFAULT_MODEL_TYPE
         model.load(model_path)
 
-        records = gather_records(cfg, tub_paths)
         user_angles = []
         user_throttles = []
         pilot_angles = []
         pilot_throttles = []       
 
-        records = records[start:start+limit]
-        num_records = len(records)
-        print('processing %d records:' % num_records)
+        from donkeycar.parts.tub_v2 import Tub
+        from pathlib import Path
 
-        for record_path in records:
-            with open(record_path, 'r') as fp:
-                record = json.load(fp)
-            img_filename = os.path.join(tub_paths, record['cam/image_array'])
-            img = load_scaled_image_arr(img_filename, cfg)
+        base_path = Path(os.path.expanduser(tub_paths)).absolute().as_posix()
+        tub = Tub(base_path)
+        records = list(tub)
+        num_records = len(records)
+        if start > num_records:
+            start = num_records - 1000
+            limit = 1000
+        if start+limit > num_records:
+            limit = 0
+        records = records[start:start+limit]
+        print('processing %d records:' % num_records)
+        bar = IncrementalBar('Inferencing', max=len(records))
+
+        for record in records:
+            img_filename = os.path.join(base_path, Tub.images(), record['cam/image_array'])
+            img = load_image(img_filename, cfg)
             user_angle = float(record["user/angle"])
             user_throttle = float(record["user/throttle"])
             pilot_angle, pilot_throttle = model.run(img)
@@ -544,6 +393,7 @@ class ShowPredictionPlots(BaseCommand):
             user_throttles.append(user_throttle)
             pilot_angles.append(pilot_angle)
             pilot_throttles.append(pilot_throttle)
+            bar.next()
 
         angles_df = pd.DataFrame({'user_angle': user_angles, 'pilot_angle': pilot_angles})
         throttles_df = pd.DataFrame({'user_throttle': user_throttles, 'pilot_throttle': pilot_throttles})
@@ -553,9 +403,6 @@ class ShowPredictionPlots(BaseCommand):
         title = "Model Predictions\nTubs: " + tub_paths + "\nModel: " + model_path + "\nType: " + model_type
         fig.suptitle(title)
 
-        ax1 = fig.add_subplot(211)
-        ax2 = fig.add_subplot(212)
-
         # pandas DataFrame shift
         # https://stackoverflow.com/questions/10982089/how-to-shift-a-column-in-pandas-dataframe
         # you can add the empty row with something like: shift_pos = 1 and, df = df.append(pd.DataFrame([[np.nan for i in df.columns] for i in range(shift_pos)], columns=df.columns)) – epifanio Dec 29 '20 at 15:04
@@ -564,22 +411,27 @@ class ShowPredictionPlots(BaseCommand):
         throttles_df = throttles_df.append(pd.DataFrame([[np.nan for i in throttles_df.columns] for i in range(start+limit)], columns=throttles_df.columns))
         throttles_df = throttles_df.shift(periods=start+limit)
 
+        ax1 = fig.add_subplot(211)
+        ax2 = fig.add_subplot(212)
+
         angles_df.plot(ax=ax1)
         throttles_df.plot(ax=ax2)
 
         ax1.legend(loc=4)
         ax2.legend(loc=4)
+
         plt.savefig(f'{model_path}_pred_{start}_{start+limit}.png')
         plt.show()
+
 
     def parse_args(self, args):
         parser = argparse.ArgumentParser(prog='tubplot', usage='%(prog)s [options]')
         parser.add_argument('--tub', nargs='+', help='The tub to make plot from')
-        parser.add_argument('--model', default=None, help='name of record to create histogram')
+        parser.add_argument('--model', default=None, help='model for predictions')
         parser.add_argument('--start', type=int, default=0, help='start record position')
         parser.add_argument('--limit', type=int, default=1000, help='how many records to process')
         parser.add_argument('--type', default=None, help='model type')
-        parser.add_argument('--config', default='./config.py', help='location of config file to use. default: ./config.py')
+        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
         parsed_args = parser.parse_args(args)
         return parsed_args
 
@@ -588,51 +440,55 @@ class ShowPredictionPlots(BaseCommand):
         args.tub = ','.join(args.tub)
         cfg = load_config(args.config)
         self.plot_predictions(cfg, args.tub, args.model, args.start, args.limit, args.type)
-        
 
-class TubAugment(BaseCommand):
+
+class Train(BaseCommand):
+
     def parse_args(self, args):
-        parser = argparse.ArgumentParser(prog='tubaugment',
-                                         usage='%(prog)s [options]')
-        parser.add_argument('tubs', nargs='+', help='paths to tubs')
-        parser.add_argument('--inplace', dest='inplace', action='store_true',
-                            help='If tub should be changed in place or new '
-                                 'tub will be created')
-        parser.set_defaults(inplace=False)
+        HELP_FRAMEWORK = 'the AI framework to use (tensorflow|pytorch). ' \
+                         'Defaults to config.DEFAULT_AI_FRAMEWORK'
+        parser = argparse.ArgumentParser(prog='train', usage='%(prog)s [options]')
+        parser.add_argument('--tub', nargs='+', help='tub data for training')
+        parser.add_argument('--model', default=None, help='output model name')
+        parser.add_argument('--type', default=None, help='model type')
+        parser.add_argument('--config', default='./config.py', help=HELP_CONFIG)
+        parser.add_argument('--framework',
+                            choices=['tensorflow', 'pytorch', None],
+                            required=False,
+                            help=HELP_FRAMEWORK)
+        parser.add_argument('--checkpoint', type=str,
+                            help='location of checkpoint to resume training from')
+        parser.add_argument('--transfer', type=str, help='transfer model')
+        parser.add_argument('--comment', type=str,
+                            help='comment added to model database - use '
+                                 'double quotes for multiple words')
         parsed_args = parser.parse_args(args)
         return parsed_args
 
-    def augment(self, tub_paths, inplace=False):
-        """
-        :param tub_paths:   path list to tubs
-        :param inplace:     if tub should be changed or copied
-        :return:            None
-        """
-        cfg = load_config('config.py')
-        tubs = gather_tubs(cfg, tub_paths)
-
-        for tub in tubs:
-            if inplace:
-                tub.augment_images()
-            else:
-                tub_path = tub.path
-                # remove trailing slash if exits
-                if tub_path[-1] == '/':
-                    tub_path = tub_path[:-1]
-                # create new tub path by inserting '_aug' after 'tub_XY'
-                head, tail = os.path.split(tub_path)
-                tail_list = tail.split('_')
-                tail_list.insert(2, 'aug')
-                new_tail = '_'.join(tail_list)
-                new_path = os.path.join(head, new_tail)
-                # copy whole tub to new location and run augmentation
-                shutil.copytree(tub.path, new_path)
-                new_tub = Tub(new_path)
-                new_tub.augment_images()
-
     def run(self, args):
         args = self.parse_args(args)
-        self.augment(args.tubs, args.inplace)
+        args.tub = ','.join(args.tub)
+        cfg = load_config(args.config)
+        framework = args.framework if args.framework \
+            else getattr(cfg, 'DEFAULT_AI_FRAMEWORK', 'tensorflow')
+
+        if framework == 'tensorflow':
+            from donkeycar.pipeline.training import train
+            train(cfg, args.tub, args.model, args.type, args.transfer,
+                  args.comment)
+        elif framework == 'pytorch':
+            from donkeycar.parts.pytorch.torch_train import train
+            train(cfg, args.tub, args.model, args.type,
+                  checkpoint_path=args.checkpoint)
+        else:
+            print(f"Unrecognized framework: {framework}. Please specify one of "
+                  f"'tensorflow' or 'pytorch'")
+
+
+class Gui(BaseCommand):
+    def run(self, args):
+        from donkeycar.management.kivy_ui import main
+        main()
 
 
 def execute_from_command_line():
@@ -640,21 +496,18 @@ def execute_from_command_line():
     This is the function linked to the "donkey" terminal command.
     """
     commands = {
-            'createcar': CreateCar,
-            'findcar': FindCar,
-            'calibrate': CalibrateCar,
-            'tubclean': TubManager,
-            'tubhist': ShowHistogram,
-            'tubplot': ShowPredictionPlots,
-            'tubcheck': TubCheck,
-            'tubaugment': TubAugment,
-            'makemovie': MakeMovieShell,            
-            'createjs': CreateJoystick,
-            'consync': ConSync,
-            'contrain': ConTrain,
-            'cnnactivations': ShowCnnActivations,
-            'update': UpdateCar
-                }
+        'createcar': CreateCar,
+        'findcar': FindCar,
+        'calibrate': CalibrateCar,
+        'tubclean': TubManager,
+        'tubplot': ShowPredictionPlots,
+        'makemovie': MakeMovieShell,
+        'createjs': CreateJoystick,
+        'cnnactivations': ShowCnnActivations,
+        'update': UpdateCar,
+        'train': Train,
+        'ui': Gui,
+    }
     
     args = sys.argv[:]
 
@@ -665,7 +518,7 @@ def execute_from_command_line():
     else:
         dk.utils.eprint('Usage: The available commands are:')
         dk.utils.eprint(list(commands.keys()))
-        
+
     
 if __name__ == "__main__":
     execute_from_command_line()

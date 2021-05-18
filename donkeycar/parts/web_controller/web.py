@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Jun 24 20:10:44 2017
-
 @author: wroscoe
-
 remotes.py
-
 The client and web server needed to control a car remotely.
 """
 
@@ -42,7 +39,6 @@ class RemoteWebServer():
         self.throttle = 0.
         self.mode = 'user'
         self.recording = False
-        self.assist_mode = False
         # use one session for all requests
         self.session = requests.Session()
 
@@ -60,7 +56,7 @@ class RemoteWebServer():
         '''
         Return the last state given from the remote server.
         '''
-        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
+        return self.angle, self.throttle, self.mode, self.recording
 
     def run(self):
         '''
@@ -115,11 +111,11 @@ class LocalWebController(tornado.web.Application):
         self.throttle = 0.0
         self.mode = mode
         self.recording = False
-        self.assist_mode = False
         self.port = port
 
         self.num_records = 0
         self.wsclients = []
+        self.loop = None
 
         self.hz_counter = 0
         self.hz_start = time.time()
@@ -131,20 +127,35 @@ class LocalWebController(tornado.web.Application):
             (r"/wsCalibrate", WebSocketCalibrateAPI),
             (r"/calibrate", CalibrateHandler),
             (r"/video", VideoAPI),
+            (r"/wsTest", WsTest),
+
             (r"/static/(.*)", StaticFileHandler,
              {"path": self.static_file_path}),
         ]
 
         settings = {'debug': True}
         super().__init__(handlers, **settings)
-        print("... you can now go to {}.local:8887 to drive "
-              "your car.".format(gethostname()))
+        print("... you can now go to {}.local:{} to drive "
+              "your car.".format(gethostname(), port))
 
     def update(self):
         ''' Start the tornado webserver. '''
         asyncio.set_event_loop(asyncio.new_event_loop())
         self.listen(self.port)
-        IOLoop.instance().start()
+        self.loop = IOLoop.instance()
+        self.loop.start()
+
+    def update_wsclients(self):
+        for wsclient in self.wsclients:
+            try:
+                data = {
+                    'num_records': self.num_records
+                }
+                data_str = json.dumps(data)
+                wsclient.write_message(data_str)
+            except Exception as e:
+                print(e)
+                pass
 
     def run_threaded(self, img_arr=None, num_records=0):
         self.img_arr = img_arr
@@ -159,20 +170,14 @@ class LocalWebController(tornado.web.Application):
         # Send record count to websocket clients
         if (self.num_records is not None and self.recording is True):
             if self.num_records % 10 == 0:
-                for wsclient in self.wsclients:
-                    try:
-                        data = {
-                            'num_records': self.num_records
-                        }
-                        wsclient.write_message(json.dumps(data))
-                    except:
-                        pass
+                if self.loop is not None:
+                    self.loop.add_callback(self.update_wsclients)
 
-        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
+        return self.angle, self.throttle, self.mode, self.recording
 
     def run(self, img_arr=None):
         self.img_arr = img_arr
-        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
+        return self.angle, self.throttle, self.mode, self.recording
 
     def shutdown(self):
         pass
@@ -196,6 +201,12 @@ class DriveAPI(RequestHandler):
         self.application.recording = data['recording']
 
 
+class WsTest(RequestHandler):
+    def get(self):
+        data = {}
+        self.render("templates/wsTest.html", **data)
+
+
 class CalibrateHandler(RequestHandler):
     """ Serves the calibration web page"""
     async def get(self):
@@ -207,7 +218,7 @@ class WebSocketDriveAPI(tornado.websocket.WebSocketHandler):
         return True
 
     def open(self):
-        # print("New client connected")
+        print("New client connected")
         self.application.wsclients.append(self)
 
     def on_message(self, message):
@@ -351,6 +362,5 @@ class WebFpv(Application):
 
     def shutdown(self):
         pass
-
 
 

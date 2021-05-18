@@ -219,8 +219,12 @@ git clone https://github.com/autorope/donkeycar
 cd donkeycar
 git checkout master
 pip install -e .[pi]
-pip install tensorflow==1.13.1
 pip install numpy --upgrade
+
+curl -sc /tmp/cookie "https://drive.google.com/uc?export=download&id=1DCfoSwlsdX9X4E3pLClE1z0fvw8tFESP" > /dev/null
+CODE="$(awk '/_warning_/ {print $NF}' /tmp/cookie)"
+curl -Lb /tmp/cookie "https://drive.google.com/uc?export=download&confirm=${CODE}&id=1DCfoSwlsdX9X4E3pLClE1z0fvw8tFESP" -o tensorflow-2.2.0-cp37-cp37m-linux_armv7l.whl
+pip install tensorflow-2.2.0-cp37-cp37m-linux_armv7l.whl
 ```
 
 You can validate your tensorflow install with
