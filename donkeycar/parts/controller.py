@@ -990,7 +990,7 @@ class JoystickController(object):
             if self.throttle > 1.0:
                 self.throttle = 1.0
             elif self.throttle < -1.0:
-                self.throttle = 1.0
+                self.throttle = -1.0
         else:
             self.throttle = (self.throttle_dir * axis_val * self.throttle_scale)
         #print("throttle", self.throttle)
