@@ -906,10 +906,11 @@ class JoystickController(object):
     def erase_last_N_records(self):
         if self.tub is not None:
             try:
-                self.tub.erase_last_n_records(self.num_records_to_erase)
-                print('erased last %d records.' % self.num_records_to_erase)
+                # tub v1 uses datastore.py elase_last_n_records. tub v2 uses tub_v2.py delete_last_n_records
+                self.tub.delete_last_n_records(self.num_records_to_erase)
+                print('delete last %d records.' % self.num_records_to_erase)
             except:
-                print('failed to erase')
+                print('failed to delete')
 
 
     def on_throttle_changes(self):
