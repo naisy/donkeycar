@@ -465,10 +465,15 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None,
 
     #Choose what inputs should change the car.
     class DriveMode:
+        drive_start = time.time()
         def run(self, mode,
                     user_angle, user_throttle,
                     pilot_angle, pilot_throttle):
             if mode == 'user':
+                current_time = time.time()
+                if current_time - self.drive_start >= 1.0:
+                    print(f"user_angle: {user_angle}, user_throttle: {user_throttle}")
+                    self.drive_start = current_time
                 return user_angle, user_throttle
 
             elif mode == 'local_angle':
