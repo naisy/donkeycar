@@ -1,23 +1,29 @@
 import moviepy.editor as mpy
-from tensorflow.python.keras import activations
-from tensorflow.python.keras import backend as K
+import tensorflow as tf
+from tensorflow.keras import backend as K
+from tensorflow.keras.applications.imagenet_utils import preprocess_input
+import cv2
+from matplotlib import pyplot as plt
 
 try:
-    from vis.visualization import visualize_saliency, overlay
-    from vis.utils import utils
-    from vis.backprop_modifiers import get
-    from vis.losses import ActivationMaximization
-    from vis.optimizer import Optimizer
+    from tf_keras_vis import utils
+    from tf_keras_vis.activation_maximization import ActivationMaximization
+    from tf_keras_vis.saliency import Saliency
+    #from tf_keras_vis.gradcam import GradcamPlusPlus
+    from tf_keras_vis.scorecam import ScoreCAM
+    from tf_keras_vis.utils import normalize
+    from tf_keras_vis.utils.callbacks import Print
 except:
-    raise Exception("Please install keras-vis: pip install git+https://github.com/autorope/keras-vis.git")
+    raise Exception("Please install tf-keras-vis: pip install tf-keras-vis")
 
 import donkeycar as dk
 from donkeycar.parts.tub_v2 import Tub
 from donkeycar.utils import *
-
+import numpy as np
 
 DEG_TO_RAD = math.pi / 180.0
 
+cfg = None
 
 class MakeMovie(object):
 
@@ -26,6 +32,7 @@ class MakeMovie(object):
         Load the images from a tub and create a movie from them.
         Movie
         '''
+        global cfg
 
         if args.tub is None:
             print("ERR>> --tub argument missing.")
@@ -38,10 +45,10 @@ class MakeMovie(object):
                  location or run from dir containing config.py." % conf)
             return
 
-        self.cfg = dk.load_config(conf)
+        cfg = dk.load_config(conf)
 
         if args.type is None and args.model is not None:
-            args.type = self.cfg.DEFAULT_MODEL_TYPE
+            args.type = cfg.DEFAULT_MODEL_TYPE
             print("Model type not provided. Using default model type from config file")
 
         if args.salient:
@@ -72,18 +79,17 @@ class MakeMovie(object):
         self.do_salient = False
         self.user = args.draw_user_input
         if args.model is not None:
-            self.keras_part = get_model_by_type(args.type, cfg=self.cfg)
+            self.keras_part = get_model_by_type(args.type, cfg=cfg)
             self.keras_part.load(args.model)
             if args.salient:
                 self.do_salient = self.init_salient(self.keras_part.model)
 
         print('making movie', args.out, 'from', num_frames, 'images')
-        clip = mpy.VideoClip(self.make_frame, duration=((num_frames - 1) / self.cfg.DRIVE_LOOP_HZ))
-        clip.write_videofile(args.out, fps=self.cfg.DRIVE_LOOP_HZ)
+        clip = mpy.VideoClip(self.make_frame, duration=((num_frames - 1) / cfg.DRIVE_LOOP_HZ))
+        clip.write_videofile(args.out, fps=cfg.DRIVE_LOOP_HZ)
 
     @staticmethod
     def draw_line_into_image(angle, throttle, is_left, img, color):
-        import cv2
 
         height, width, _ = img.shape
         length = height
@@ -143,15 +149,13 @@ class MakeMovie(object):
         if self.keras_part is None or type(self.keras_part) is not KerasCategorical:
             return
 
-        import cv2
-
         pred_img = normalize_image(img)
         pred_img = pred_img.reshape((1,) + pred_img.shape)
         angle_binned, _ = self.keras_part.model.predict(pred_img)
 
         x = 4
         dx = 4
-        y = 120 - 4
+        y = cfg.IMAGE_H - 4
         iArgMax = np.argmax(angle_binned)
         for i in range(15):
             p1 = (x, y)
@@ -165,54 +169,86 @@ class MakeMovie(object):
     def init_salient(self, model):
         # Utility to search for layer index by name. 
         # Alternatively we can specify this as -1 since it corresponds to the last layer.
-        first_output_name = None
+        model.summary()
+        self.output_names = []
         for i, layer in enumerate(model.layers):
-            if first_output_name is None and "dropout" not in layer.name.lower() and "out" in layer.name.lower():
-                first_output_name = layer.name
-                layer_idx = i
+            if "dropout" not in layer.name.lower() and "out" in layer.name.lower():
+                self.output_names += [layer.name]
 
-        if first_output_name is None:
+        if len(self.output_names) == 0:
             print("Failed to find the model layer named with 'out'. Skipping salient.")
             return False
 
         print("####################")
-        print("Visualizing activations on layer:", first_output_name)
+        print("Visualizing activations on layer:", *self.output_names)
         print("####################")
         
-        # ensure we have linear activation
-        model.layers[layer_idx].activation = activations.linear
-        # build salient model and optimizer
-        sal_model = utils.apply_modifications(model)
-        modifier_fn = get('guided')
-        sal_model_mod = modifier_fn(sal_model)
-        losses = [
-            (ActivationMaximization(sal_model_mod.layers[layer_idx], None), -1)
-        ]
-        self.opt = Optimizer(sal_model_mod.input, losses, norm_grads=False)
+        # Create Saliency object.
+        # If `clone` is True(default), the `model` will be cloned,
+        # so the `model` instance will be NOT modified, but it takes a machine resources.
+        self.saliency = Saliency(model,
+                                 model_modifier=self.model_modifier,
+                                 clone=False)
+
+        """ Saliency is enough.
+        # Create GradCAM++ object, Just only repalce class name to "GradcamPlusPlus"
+        self.gradcampp = GradcamPlusPlus(model,
+                                         model_modifier=self.model_modifier,
+                                         clone=False)
+        """
+
+
+
+        self.activation_maximization = ActivationMaximization(model,
+                                                              self.model_modifier,
+                                                              clone=False)
         return True
 
-    def compute_visualisation_mask(self, img):
-        grad_modifier = 'absolute'
-        grads = self.opt.minimize(seed_input=img, max_iter=1, grad_modifier=grad_modifier, verbose=False)[1]
-        channel_idx = 1 if K.image_data_format() == 'channels_first' else -1
-        grads = np.max(grads, axis=channel_idx)
-        res = utils.normalize(grads)[0]
-        return res
+    def draw_gradcam_plus_plus(self, img):
+
+        x = preprocess_input(img, mode='tf')
+
+        # Generate heatmap with GradCAM++
+        salient_map = self.gradcampp(self.loss,
+                             x,
+                             penultimate_layer=-1, # model.layers number
+                             )
+
+        return self.draw_blend_image(img, salient_map)
+
 
     def draw_salient(self, img):
-        import cv2
+
+        # https://github.com/keras-team/keras-applications/blob/master/keras_applications/imagenet_utils.py
+        x = preprocess_input(img, mode='tf')
+
+        # Generate saliency map with smoothing that reduce noise by adding noise
+        salient_map = self.saliency(self.loss, x)
+
+        return self.draw_blend_image(img, salient_map)
+
+    def draw_blend_image(self, img, salient_map):
+        if salient_map[0].size != cfg.IMAGE_W * cfg.IMAGE_H:
+            print("salient size failed.")
+            return
+
         alpha = 0.004
         beta = 1.0 - alpha
-        expected = self.keras_part.model.inputs[0].shape[1:]
-        actual = img.shape
+        #expected = self.keras_part.model.inputs[0].shape[1:]
+        #actual = img.shape
 
-        # check input depth and convert to grey to match expected model input
-        if expected[2] == 1 and actual[2] == 3:
-            grey_img = rgb2gray(img)
-            img = grey_img.reshape(grey_img.shape + (1,))
+        salient_mask = normalize(salient_map[0])
+        salient_mask = salient_map[0]
+        # drop low score
+        salient_mask = np.where(salient_mask < 0.1 0.0, salient_mask)
 
-        norm_img = normalize_image(img)
-        salient_mask = self.compute_visualisation_mask(norm_img)
+        # 1d to 2d
+        salient_mask = np.reshape(salient_mask, (-1,cfg.IMAGE_W))
+        # gray to rgb
+        #salient_mask = np.stack((salient_mask,)*3, axis=-1)
+        # 0 to 255
+        salient_mask = salient_mask * 255
+        
         z = np.zeros_like(salient_mask)
         salient_mask_stacked = np.dstack((z, z))
         salient_mask_stacked = np.dstack((salient_mask_stacked, salient_mask))
@@ -236,6 +272,7 @@ class MakeMovie(object):
 
         if self.do_salient:
             image = self.draw_salient(image)
+            #image = self.draw_gradcam_plus_plus(image)
             image = image * 255
             image = image.astype('uint8')
         
@@ -245,7 +282,6 @@ class MakeMovie(object):
             self.draw_steering_distribution(image)
 
         if self.scale != 1:
-            import cv2
             h, w, d = image.shape
             dsize = (w * self.scale, h * self.scale)
             image = cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_CUBIC)
@@ -253,3 +289,11 @@ class MakeMovie(object):
         self.current += 1
         # returns a 8-bit RGB array
         return image
+
+    def model_modifier(self, m):
+        m.layers[-1].activation = tf.keras.activations.linear
+
+
+    def loss(self, output):
+        return (output[0])
+
