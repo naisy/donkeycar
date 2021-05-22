@@ -240,7 +240,7 @@ class MakeMovie(object):
         salient_mask = normalize(salient_map[0])
         salient_mask = salient_map[0]
         # drop low score
-        salient_mask = np.where(salient_mask < 0.1 0.0, salient_mask)
+        salient_mask = np.where(salient_mask < 0.1, 0.0, salient_mask)
 
         # 1d to 2d
         salient_mask = np.reshape(salient_mask, (-1,cfg.IMAGE_W))
