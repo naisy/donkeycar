@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 try:
     from tf_keras_vis import utils
     from tf_keras_vis.activation_maximization import ActivationMaximization
+    from tf_keras_vis.utils.scores import CategoricalScore
     from tf_keras_vis.saliency import Saliency
     #from tf_keras_vis.gradcam import GradcamPlusPlus
     from tf_keras_vis.scorecam import ScoreCAM
@@ -112,10 +113,10 @@ class MakeMovie(object):
         green = (0, 255, 0)
         self.draw_line_into_image(user_angle, user_throttle, False, img, green)
         
-    def draw_model_prediction(self, img):
+    def draw_model_prediction(self, img, salient_image):
         """
         query the model for it's prediction, draw the predictions
-        as a blue line on the image
+        as a red line on the image
         """
         if self.keras_part is None:
             return
@@ -135,11 +136,11 @@ class MakeMovie(object):
                   f"{actual}")
             return
 
-        blue = (0, 0, 255)
+        red = (255, 0, 0)
         pilot_angle, pilot_throttle = self.keras_part.run(img)
-        self.draw_line_into_image(pilot_angle, pilot_throttle, True, img, blue)
+        self.draw_line_into_image(pilot_angle, pilot_throttle, True, salient_image, red)
 
-    def draw_steering_distribution(self, img):
+    def draw_steering_distribution(self, img, salient_image):
         """
         query the model for it's prediction, draw the distribution of
         steering choices
@@ -161,9 +162,9 @@ class MakeMovie(object):
             p1 = (x, y)
             p2 = (x, y - int(angle_binned[0][i] * 100.0))
             if i == iArgMax:
-                cv2.line(img, p1, p2, (255, 0, 0), 2)
+                cv2.line(salient_image, p1, p2, (255, 0, 0), 2)
             else:
-                cv2.line(img, p1, p2, (200, 200, 200), 2)
+                cv2.line(salient_image, p1, p2, (200, 200, 200), 2)
             x += dx
 
     def init_salient(self, model):
@@ -171,6 +172,7 @@ class MakeMovie(object):
         # Alternatively we can specify this as -1 since it corresponds to the last layer.
         model.summary()
         self.output_names = []
+
         for i, layer in enumerate(model.layers):
             if "dropout" not in layer.name.lower() and "out" in layer.name.lower():
                 self.output_names += [layer.name]
@@ -189,19 +191,13 @@ class MakeMovie(object):
         self.saliency = Saliency(model,
                                  model_modifier=self.model_modifier,
                                  clone=False)
-
-        """ Saliency is enough.
+        """
         # Create GradCAM++ object, Just only repalce class name to "GradcamPlusPlus"
         self.gradcampp = GradcamPlusPlus(model,
                                          model_modifier=self.model_modifier,
                                          clone=False)
         """
-
-
-
-        self.activation_maximization = ActivationMaximization(model,
-                                                              self.model_modifier,
-                                                              clone=False)
+ 
         return True
 
     def draw_gradcam_plus_plus(self, img):
@@ -214,46 +210,31 @@ class MakeMovie(object):
                              penultimate_layer=-1, # model.layers number
                              )
 
-        return self.draw_blend_image(img, salient_map)
+        return self.draw_mask(salient_map)
 
 
     def draw_salient(self, img):
-
         # https://github.com/keras-team/keras-applications/blob/master/keras_applications/imagenet_utils.py
         x = preprocess_input(img, mode='tf')
 
         # Generate saliency map with smoothing that reduce noise by adding noise
         salient_map = self.saliency(self.loss, x)
+        return self.draw_mask(salient_map)
 
-        return self.draw_blend_image(img, salient_map)
 
-    def draw_blend_image(self, img, salient_map):
+    def draw_mask(self, salient_map):
         if salient_map[0].size != cfg.IMAGE_W * cfg.IMAGE_H:
             print("salient size failed.")
             return
 
-        alpha = 0.004
-        beta = 1.0 - alpha
-        #expected = self.keras_part.model.inputs[0].shape[1:]
-        #actual = img.shape
-
-        salient_mask = normalize(salient_map[0])
         salient_mask = salient_map[0]
-        # drop low score
-        salient_mask = np.where(salient_mask < 0.1, 0.0, salient_mask)
-
-        # 1d to 2d
-        salient_mask = np.reshape(salient_mask, (-1,cfg.IMAGE_W))
-        # gray to rgb
-        #salient_mask = np.stack((salient_mask,)*3, axis=-1)
-        # 0 to 255
         salient_mask = salient_mask * 255
-        
+
         z = np.zeros_like(salient_mask)
         salient_mask_stacked = np.dstack((z, z))
         salient_mask_stacked = np.dstack((salient_mask_stacked, salient_mask))
-        blend = cv2.addWeighted(img.astype('float32'), alpha, salient_mask_stacked, beta, 0.0)
-        return blend
+        return salient_mask_stacked
+        
 
     def make_frame(self, t):
         '''
@@ -268,31 +249,32 @@ class MakeMovie(object):
 
         rec = self.iterator.next()
         img_path = os.path.join(self.tub.images_base_path, rec['cam/image_array'])
-        image = img_to_arr(Image.open(img_path))
+        camera_image = img_to_arr(Image.open(img_path))
 
+        salient_image = None
         if self.do_salient:
-            image = self.draw_salient(image)
-            #image = self.draw_gradcam_plus_plus(image)
-            image = image * 255
-            image = image.astype('uint8')
-        
-        if self.user: self.draw_user_input(rec, image)
+            salient_image = self.draw_salient(camera_image)
+            #salient_image = self.draw_gradcam_plus_plus(camera_image)
+            salient_image = salient_image.astype('uint8')
+        if salient_image is None:
+            salient_image = camera_image
+
+        if self.user: self.draw_user_input(rec, salient_image)
         if self.keras_part is not None:
-            self.draw_model_prediction(image)
-            self.draw_steering_distribution(image)
+            self.draw_model_prediction(camera_image, salient_image)
+            self.draw_steering_distribution(camera_image, salient_image)
 
         if self.scale != 1:
-            h, w, d = image.shape
+            h, w, d = salient_image.shape
             dsize = (w * self.scale, h * self.scale)
-            image = cv2.resize(image, dsize=dsize, interpolation=cv2.INTER_CUBIC)
+            salient_image = cv2.resize(salient_image, dsize=dsize, interpolation=cv2.INTER_CUBIC)
 
         self.current += 1
         # returns a 8-bit RGB array
-        return image
+        return salient_image
 
     def model_modifier(self, m):
         m.layers[-1].activation = tf.keras.activations.linear
-
 
     def loss(self, output):
         return (output[0])
