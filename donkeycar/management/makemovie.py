@@ -210,7 +210,7 @@ class MakeMovie(object):
                              penultimate_layer=-1, # model.layers number
                              )
 
-        return self.draw_mask(salient_map)
+        return self.draw_mask(img, salient_map)
 
 
     def draw_salient(self, img):
@@ -219,21 +219,20 @@ class MakeMovie(object):
 
         # Generate saliency map with smoothing that reduce noise by adding noise
         salient_map = self.saliency(self.loss, x)
-        return self.draw_mask(salient_map)
+        return self.draw_mask(img, salient_map)
 
 
-    def draw_mask(self, salient_map):
+    def draw_mask(self, img, salient_map):
         if salient_map[0].size != cfg.IMAGE_W * cfg.IMAGE_H:
             print("salient size failed.")
             return
 
-        salient_mask = salient_map[0]
-        salient_mask = salient_mask * 255
+        salient_map = salient_map[0]
+        salient_map = cv2.cvtColor(salient_map, cv2.COLOR_GRAY2RGB)
 
-        z = np.zeros_like(salient_mask)
-        salient_mask_stacked = np.dstack((z, z))
-        salient_mask_stacked = np.dstack((salient_mask_stacked, salient_mask))
-        return salient_mask_stacked
+        salient = img * salient_map
+
+        return salient
         
 
     def make_frame(self, t):
