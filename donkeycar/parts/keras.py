@@ -258,7 +258,7 @@ class KerasCategorical(KerasPilot):
             return 0.0, 0.0
 
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        angle_binned_tensor, throttle_binned_tensor = self.model(img_arr, training=False)
+        angle_binned_tensor, throttle_binned_tensor = self.model(img_arr, training=False, mask=False)
         angle_binned = angle_binned_tensor.numpy()
         throttle_binned = throttle_binned_tensor.numpy()
         N = len(throttle_binned[0])
@@ -305,7 +305,7 @@ class KerasLinear(KerasPilot):
 
     def inference(self, img_arr, other_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        outputs = self.model(img_arr, training=False)
+        outputs = self.model(img_arr, training=False, mask=False)
         steering = outputs[0].numpy()
         throttle = outputs[1].numpy()
         return steering[0][0], throttle[0][0]
@@ -341,7 +341,7 @@ class KerasInferred(KerasPilot):
 
     def inference(self, img_arr, other_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        outputs = self.model(img_arr, training=False)
+        outputs = self.model(img_arr, training=False, mask=False)
         steering = outputs[0].numpy()
         return steering[0], dk.utils.throttle(steering[0])
 
@@ -400,7 +400,7 @@ class KerasIMU(KerasPilot):
     def inference(self, img_arr, other_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         imu_arr = np.array(other_arr).reshape(1, self.num_imu_inputs)
-        outputs = self.model([img_arr, imu_arr], training=False)
+        outputs = self.model([img_arr, imu_arr], training=False, mask=False)
         steering = outputs[0].numpy()
         throttle = outputs[1].numpy()
         return steering[0][0], throttle[0][0]
@@ -427,7 +427,7 @@ class KerasBehavioral(KerasPilot):
     def inference(self, img_arr, state_array):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
         bhv_arr = np.array(state_array).reshape(1, len(state_array))
-        angle_binned_tensor, throttle_tensor = self.model([img_arr, bhv_arr], training=False)
+        angle_binned_tensor, throttle_tensor = self.model([img_arr, bhv_arr], training=False, mask=False)
         angle_binned = angle_binned_tensor.numpy()
         throttle = throttle_tensor.numpy()
         # In order to support older models with linear throttle,we will test for
@@ -465,7 +465,7 @@ class KerasLocalizer(KerasPilot):
         
     def inference(self, img_arr, other_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        angle_t, throttle_t, track_loc_t = self.model([img_arr], training=False)
+        angle_t, throttle_t, track_loc_t = self.model([img_arr], training=False, mask=False)
         angle = angle_t.numpy()
         throttle = throttle_t.numpy()
         track_loc = track_loc_t.numpy()
@@ -658,7 +658,7 @@ class KerasRNN_LSTM(KerasPilot):
         
         img_arr = np.array(self.img_seq).reshape((1, self.seq_length,
                                                   *self.input_shape))
-        outputs = self.model([img_arr], training=False)
+        outputs = self.model([img_arr], training=False, mask=False)
         steering = outputs[0][0].numpy()
         throttle = outputs[0][1].numpy()
         return steering, throttle
@@ -725,7 +725,7 @@ class Keras3D_CNN(KerasPilot):
         
         img_arr = np.array(self.img_seq).reshape((1, self.seq_length,
                                                   *self.input_shape))
-        outputs = self.model([img_arr], training=False)
+        outputs = self.model([img_arr], training=False, mask=False)
         steering = outputs[0][0].numpy()
         throttle = outputs[0][1].numpy()
         return steering, throttle
@@ -813,7 +813,7 @@ class KerasLatent(KerasPilot):
 
     def inference(self, img_arr, other_arr):
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        outputs = self.model(img_arr, training=False)
+        outputs = self.model(img_arr, training=False, mask=False)
         steering = outputs[1].numpy()
         throttle = outputs[2].numpy()
         return steering[0][0], throttle[0][0]
