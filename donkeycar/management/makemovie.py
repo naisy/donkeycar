@@ -92,6 +92,13 @@ class MakeMovie(object):
         self.throttle_circle_pilot_angle = 0
         self.throttle_circle_user_angle = 0
         self.is_test = False
+        self.last_pilot_throttle = 0.0 # used for color transparency
+        self.last_user_throttle = 0.0 # used for color transparency
+        self.pilot_throttle_trans = 1.0 # used for color transparency
+        self.user_throttle_trans = 1.0 # used for color transparency
+        self.pilot_throttle_trans_rate = 0.25 # used for color transparency
+        self.user_throttle_trans_rate = 0.25 # used for color transparency
+
 
         if args.model is not None:
             self.keras_part = get_model_by_type(args.type, cfg=cfg)
@@ -361,9 +368,11 @@ class MakeMovie(object):
         r_pilot = int(height//r_base+(height//3.1)*self.control_score)
         r_user = int(height//r_base+(height//6.2)*self.control_score)
 
+        pilot_trans, user_trans = self.trans_make()
+
         # draw pilot control
-        green = (0,int(255*(0.5+abs(self.pilot_throttle/2))),0) # green for reverse
-        blue = (0,0,int(255*(0.5+abs(self.pilot_throttle/2)))) # blue for reverse
+        green = (0,int(255*pilot_trans),0) # green for reverse
+        blue = (0,0,int(255*pilot_trans)) # blue for reverse
         self.draw_ellipse(self.pilot_angle, self.pilot_throttle, x,y,r_pilot, ellipse, green, blue)
 
         pilot_circle_mask = cv2.circle(white, (int(x),int(y)), int(r_user+(height//10)*self.control_score), (0,0,0), -1).astype('uint8')
@@ -371,8 +380,8 @@ class MakeMovie(object):
         ellipse = cv2.bitwise_and(ellipse, pilot_circle_mask)
 
         # draw user control
-        green = (0,int(255*(0.5+abs(self.user_throttle/2))),0) # green for reverse
-        blue = (0,0,int(255*(0.5+abs(self.user_throttle/2)))) # blue for reverse
+        green = (0,int(255*user_trans),0) # green for reverse
+        blue = (0,0,int(255*user_trans)) # blue for reverse
         orange = (255,69,0) # orange for reverse
         self.draw_ellipse(self.user_angle, self.user_throttle, x,y,r_user, ellipse, green, blue)
         white = np.ones_like(img)*255
@@ -397,8 +406,8 @@ class MakeMovie(object):
         # draw speed meter
         #self.draw_analog_meter(ellipse, self.pilot_speed)
         self.draw_analog_direction_meter(ellipse, self.pilot_angle, self.pilot_throttle)
-        ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4), self.pilot_throttle, 18*self.scale)
-        ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4)*2-(width//10)*self.control_score, self.user_throttle, 12*self.scale)
+        ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4), self.pilot_throttle, 18*self.scale, pilot_trans)
+        ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4)*2-(width//10)*self.control_score, self.user_throttle, 12*self.scale, user_trans)
 
         #self.draw_analog_meter(ellipse, -0.75)
         #print(f"r_pilot: {r_pilot}")
@@ -443,7 +452,29 @@ class MakeMovie(object):
         # blur
         ellipse = cv2.GaussianBlur(ellipse,(5,5),0)
 
+        self.last_pilot_throttle = self.pilot_throttle
+        self.last_user_throttle = self.user_throttle
+
         return cv2.addWeighted(img, 1.0, ellipse, 1.0, 0.0)
+
+    def trans_make(self):
+        if self.pilot_throttle != self.last_pilot_throttle:
+            if self.pilot_throttle_trans >= 0.8:
+                self.pilot_throttle_trans_rate = -0.25
+            elif self.pilot_throttle_trans <= 0.3:
+                self.pilot_throttle_trans_rate = +0.25
+            self.pilot_throttle_trans += self.pilot_throttle_trans_rate
+        else:
+            self.pilot_throttle_trans = 1.0
+        if self.user_throttle != self.last_user_throttle:
+            if self.user_throttle_trans >= 0.8:
+                self.user_throttle_trans_rate = -0.25
+            elif self.user_throttle_trans <= 0.3:
+                self.user_throttle_trans_rate = +0.25
+            self.user_throttle_trans += self.user_throttle_trans_rate
+        else:
+            self.user_throttle_trans = 1.0
+        return self.pilot_throttle_trans, self.user_throttle_trans
 
     def draw_analog_meter(self, img, value):
         height, width, _ = img.shape
@@ -530,7 +561,7 @@ class MakeMovie(object):
         return color
 
 
-    def draw_digital_meter(self, img, r_mask, value, num):
+    def draw_digital_meter(self, img, r_mask, value, num, trans):
         if num > 36:
             num = 36
         height, width, _ = img.shape
@@ -552,12 +583,13 @@ class MakeMovie(object):
             box = self.points_rotation(base_points,center=(0,0),degrees=deg)
             box = ((box.T + center.T).T)
             if i == 0:
-                color = (0,0,255)
+                color = (0,0,255*trans)
             else:
                 if value >= 0:
                     color = self.color_make(i*dot_angle/270)
                 else:
                     color = self.color_make((360-i*dot_angle)/270)
+                color=(color[0]*trans,color[1]*trans,color[2]*trans)
             cv2.fillPoly(meter_img, np.array([box], dtype=np.int32), color)
 
         meter_img = cv2.bitwise_and(meter_img.astype('uint8'), mask_img.astype('uint8'))
@@ -697,5 +729,4 @@ class MakeMovie(object):
         """ DRAW FPS, TEXT """
         for i in range(len(display_str)):
             cv2.putText(img, display_str[i], org=(x_left, y_top + int(max_text_height*1.2 + (max_text_height*1.2 * i))), fontFace=fontFace, fontScale=fontScale, thickness=fontThickness, color=(77, 255, 9))
-
 
