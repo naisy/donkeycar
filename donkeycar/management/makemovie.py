@@ -488,7 +488,7 @@ class MakeMovie(object):
         p1 = (x,y-r_pilot)
         p2 = (x,y+y//10)
         pts = self.points_rotation([p1,p2], center=(x,y), degrees=value*180-90)
-        cv2.line(img, pts[0], pts[1], red, 2)
+        cv2.line(img, tuple(pts[0]), tuple(pts[1]), red, 2)
 
 
     def draw_analog_direction_meter(self, img, angle, throttle):
@@ -510,7 +510,7 @@ class MakeMovie(object):
             add_deg = 180
 
         pts = self.points_rotation([p1,p2], center=(x,y), degrees=flag_throttle*angle*90+add_deg)
-        cv2.line(img, pts[0], pts[1], red, 2)
+        cv2.line(img, tuple(pts[0]), tuple(pts[1]), red, 2)
         
 
     def draw_arc_center_line(self, img, x,y,r1,r2, color, thickness, degrees):
