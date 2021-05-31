@@ -433,8 +433,8 @@ class MakeMovie(object):
         cv2.line(ellipse, p1, p2, red, 2)
         """
         red=(255,0,0)
-        self.draw_arc_center_line(ellipse, x,y,r_pilot+1+self.scale//4,r_user+(height//10)*self.control_score, red, 2, degrees=flag_pilot_throttle*self.pilot_angle*90+add_pilot_deg)
-        self.draw_arc_center_line(ellipse, x,y,r_user+1+self.scale//4,r_mask+(height//10)*self.control_score, red, 2, degrees=flag_user_throttle*self.user_angle*90+add_user_deg)
+        self.draw_arc_center_line(ellipse, x,y,r_pilot+1+(height//40),r_user+(height//20)*self.control_score, red, 2, degrees=flag_pilot_throttle*self.pilot_angle*90+add_pilot_deg)
+        self.draw_arc_center_line(ellipse, x,y,r_user+1+(height//40),r_mask+(height//20)*self.control_score, red, 2, degrees=flag_user_throttle*self.user_angle*90+add_user_deg)
 
         
 
@@ -450,7 +450,11 @@ class MakeMovie(object):
         """
 
         # blur
-        ellipse = cv2.GaussianBlur(ellipse,(5,5),0)
+        if self.scale <= 3:
+            ellipse = cv2.GaussianBlur(ellipse,(3,3),0)
+        else:
+            ellipse = cv2.GaussianBlur(ellipse,(5,5),0)
+            
 
         self.last_pilot_throttle = self.pilot_throttle
         self.last_user_throttle = self.user_throttle
@@ -507,7 +511,8 @@ class MakeMovie(object):
             add_deg = 0
         else:
             flag_throttle = -1
-            add_deg = 180
+            #add_deg = 180
+            add_deg = 0
 
         pts = self.points_rotation([p1,p2], center=(x,y), degrees=flag_throttle*angle*90+add_deg)
         cv2.line(img, tuple(pts[0]), tuple(pts[1]), red, 2)
@@ -524,7 +529,7 @@ class MakeMovie(object):
 
     def color_make(self,value):
         """
-        color making
+        Rainbow color maker.
         value: -1.0 to 1.0
 
         abs(value) 0.0: blue
@@ -562,6 +567,14 @@ class MakeMovie(object):
 
 
     def draw_digital_meter(self, img, r_mask, value, num, trans):
+        """
+        Rainbow digital throttle meter.
+        img: image to draw
+        r_mask: circumferential radius
+        value: -1.0 to 1.0
+        num: number of boxes
+        trans: when the value is changed, boxes transparency is changed with this value
+        """
         if num > 36:
             num = 36
         height, width, _ = img.shape
@@ -576,7 +589,7 @@ class MakeMovie(object):
 
         mask_img = np.zeros_like(img)
         meter_img = np.zeros_like(img)
-        self.draw_ellipse_for_digital_meter(value,x,y,r_mask,mask_img)
+        self.draw_digital_mask(value,x,y,r_mask,mask_img)
         
         for i in range(0, num):
             deg = i * dot_angle + start_angle
@@ -599,7 +612,7 @@ class MakeMovie(object):
 
     def draw_dot_circle(self, img, x,y,r, cr, color, thickness, num):
         """
-        this is not rotate depending on the throttle. 
+        Draw outer dot circle.
         """
         if num > 36:
             num = 36
@@ -614,7 +627,8 @@ class MakeMovie(object):
 
     def draw_dot_circle2(self, img, x,y,r, cr, color, thickness, num, throttle, is_pilot):
         """
-        this is rotate depending on the throttle. 
+        Draw outer dot circle.
+        This circle rotates according to the throttle.
         """
         if num > 36:
             num = 36
@@ -680,14 +694,15 @@ class MakeMovie(object):
 
 
     def draw_ellipse(self, angle, throttle, x,y,r, img, color, reverse_color):
+        """
+        Draw the outer arc.
+        """
         angle_deg = int(throttle * 270)
         if throttle < 0:
             center_deg = +90 + abs(angle_deg/2)
             color = reverse_color
         else:
             center_deg = -90 - abs(angle_deg/2)
-        #if angle_deg == 0:
-        #    angle_deg = 1
 
         if throttle < 0:
             angle = angle * -1.0
@@ -696,9 +711,16 @@ class MakeMovie(object):
         cv2.ellipse(img,(int(x),int(y)),(int(r),int(r)),rotate_deg,0,angle_deg,color,-1)
         
 
-    def draw_ellipse_for_digital_meter(self, throttle, x,y,r, img):
-        angle_deg = int(throttle * 270)
-        rotate_deg = 145
+    def draw_digital_mask(self, throttle, x,y,r, img):
+        """
+        throttle: -1.0 to 1.0
+        x: x coordinate in the center of the image
+        y: y coordinate in the center of the image
+        r: radius of arc
+        img: mask image
+        """
+        angle_deg = int(throttle * 270) # ellipse angle
+        rotate_deg = 145 # ellipse start position
         color=(255,255,255)
         cv2.ellipse(img,(int(x),int(y)),(int(r),int(r)),rotate_deg,0,angle_deg,color,-1)
         
