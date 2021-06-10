@@ -44,11 +44,12 @@ def drive(cfg):
         servo_pin=cfg.STEERING_ARDUINO_PIN, esc_pin=cfg.THROTTLE_ARDUINO_PIN)
     steering = ArdPWMSteering(controller=arduino_controller,
                               left_pulse=cfg.STEERING_ARDUINO_LEFT_PWM,
+                              steering_zero_pulse=cfg.STEERING_ARDUINO_STOPPED_PWM,
                               right_pulse=cfg.STEERING_ARDUINO_RIGHT_PWM)
 
     throttle = ArdPWMThrottle(controller=arduino_controller,
                               max_pulse=cfg.THROTTLE_ARDUINO_FORWARD_PWM,
-                              zero_pulse=cfg.THROTTLE_ARDUINO_STOPPED_PWM,
+                              throttle_zero_pulse=cfg.THROTTLE_ARDUINO_STOPPED_PWM,
                               min_pulse=cfg.THROTTLE_ARDUINO_REVERSE_PWM)
 
     V.add(steering, inputs=['user/angle'])

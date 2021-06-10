@@ -45,6 +45,7 @@ cfg.THROTTLE_CHANNEL = 13
 PULSE_MULT = 1000
 
 cfg.STEERING_LEFT_PWM = 40 * PULSE_MULT
+cfg.STEERING_STOPPED_PWM = 105 * PULSE_MULT
 cfg.STEERING_RIGHT_PWM = 170 * PULSE_MULT
 
 cfg.THROTTLE_FORWARD_PWM = 170 * PULSE_MULT
@@ -57,13 +58,14 @@ V.add(PS3JoystickController(), inputs=['camera/arr'],
 
 steering_controller = PiGPIO_PWM(cfg.STEERING_CHANNEL, p)
 steering = PWMSteering(controller=steering_controller,
-                            left_pulse=cfg.STEERING_LEFT_PWM, 
+                            left_pulse=cfg.STEERING_LEFT_PWM,
+                            steering_zero_pulse=cfg.STEERING_STOPPED_PWM,
                             right_pulse=cfg.STEERING_RIGHT_PWM)
 
 throttle_controller = PiGPIO_PWM(cfg.THROTTLE_CHANNEL, p)
 throttle = PWMThrottle(controller=throttle_controller,
                             max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                            zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
+                            throttle_zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
                             min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
 V.add(steering, inputs=['angle'])

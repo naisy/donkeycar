@@ -57,6 +57,7 @@ DRIVE_TRAIN_TYPE = "MOCK" # SERVO_ESC|DC_STEER_THROTTLE|DC_TWO_WHEEL|SERVO_HBRID
 #STEERING
 STEERING_CHANNEL = 1            #channel on the 9685 pwm board 0-15
 STEERING_LEFT_PWM = 460         #pwm value for full left steering
+STEERING_STOPPED_PWM = 370      #pwm value for neutral steering
 STEERING_RIGHT_PWM = 290        #pwm value for full right steering
 
 #STEERING FOR PIGPIO_PWM
