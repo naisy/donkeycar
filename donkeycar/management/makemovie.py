@@ -423,7 +423,8 @@ class MakeMovie(object):
             add_user_deg = 180
         else:
             flag_user_throttle = -1
-            add_user_deg = 0
+            #add_user_deg = 0
+            add_user_deg = 180
         """
         p1 = (x,y-flag_pilot_throttle*r_pilot)
         p2 = (x,y+flag_pilot_throttle*y//10)
@@ -433,7 +434,7 @@ class MakeMovie(object):
         cv2.line(ellipse, p1, p2, red, 2)
         """
         red=(255,0,0)
-        self.draw_arc_center_line(ellipse, x,y,r_pilot+1+(height//40),r_user+(height//20)*self.control_score, red, 2, degrees=flag_pilot_throttle*self.pilot_angle*90+add_pilot_deg)
+        #self.draw_arc_center_line(ellipse, x,y,r_pilot+1+(height//40),r_user+(height//20)*self.control_score, red, 2, degrees=flag_pilot_throttle*self.pilot_angle*90+add_pilot_deg)
         self.draw_arc_center_line(ellipse, x,y,r_user+1+(height//40),r_mask+(height//20)*self.control_score, red, 2, degrees=flag_user_throttle*self.user_angle*90+add_user_deg)
 
         
