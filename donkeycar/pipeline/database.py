@@ -3,9 +3,10 @@ import os
 import time
 from typing import Dict, List, Tuple
 import pandas as pd
-
+import logging
 from donkeycar.config import Config
 
+logger = logging.getLogger(__name__)
 
 FILE = 'database.json'
 
@@ -33,8 +34,8 @@ class PilotDatabase:
         else:
             this_num = 0
         date = time.strftime('%y-%m-%d')
-        name = 'pilot_' + date + '_' + str(this_num)
-        return name, this_num
+        name = f'pilot_{date}_{this_num}.h5'
+        return os.path.join(self.cfg.MODELS_PATH, name), this_num
 
     def to_df(self) -> pd.DataFrame:
         if self.entries:
@@ -49,7 +50,7 @@ class PilotDatabase:
             with open(self.path, "w") as data_file:
                 json.dump(self.entries, data_file)
         except Exception as e:
-            print(e)
+            logger.error(f'Failed writing database file: {e}')
 
     def add_entry(self, entry: Dict):
         self.entries.append(entry)

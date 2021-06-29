@@ -45,6 +45,7 @@ PCA9685_I2C_BUSNUM = None   #None will auto detect, which is fine on the pi. But
 #SSD1306_128_32
 USE_SSD1306_128_32 = False    # Enable the SSD_1306 OLED Display
 SSD1306_128_32_I2C_ROTATION = 0 # 0 = text is right-side up, 1 = rotated 90 degrees clockwise, 2 = 180 degrees (flipped), 3 = 270 degrees
+SSD1306_RESOLUTION = 1 # 1 = 128x32; 2 = 128x64
 
 #DRIVETRAIN
 #These options specify which chasis and motor setup you are using. Most are using SERVO_ESC.
@@ -125,9 +126,10 @@ HBRIDGE_L298N_PIN_RIGHT_EN = 11
 # The default AI framework to use. Choose from (tensorflow|pytorch)
 DEFAULT_AI_FRAMEWORK = 'tensorflow'
 
-#The DEFAULT_MODEL_TYPE will choose which model will be created at training time. This chooses
-#between different neural network designs. You can override this setting by passing the command
-#line parameter --type to the python manage.py train and drive commands.
+# The DEFAULT_MODEL_TYPE will choose which model will be created at training
+# time. This chooses between different neural network designs. You can
+# override this setting by passing the command line parameter --type to the
+# python manage.py train and drive commands.
 # tensorflow models: (linear|categorical|tflite_linear|tensorrt_linear)
 # pytorch models: (resnet18)
 DEFAULT_MODEL_TYPE = 'linear'   #(linear|categorical|rnn|imu|behavior|3d|localizer|latent|inferred|tensorrt_linear|tflite_linear)
@@ -144,7 +146,8 @@ OPTIMIZER = None                #adam, sgd, rmsprop, etc.. None accepts default
 LEARNING_RATE = 0.001           #only used when OPTIMIZER specified
 LEARNING_RATE_DECAY = 0.0       #only used when OPTIMIZER specified
 SEND_BEST_MODEL_TO_PI = False   #change to true to automatically send best model during training
-CACHE_IMAGES = True             #keep images in memory. will speed succesive epochs, but crater if not enough mem.
+CREATE_TF_LITE = True           # automatically create tflite model in training
+CREATE_TENSOR_RT = False        # automatically create tensorrt model in training
 
 PRUNE_CNN = False               #This will remove weights from your model. The primary goal is to increase performance.
 PRUNE_PERCENT_TARGET = 75       # The desired percentage of pruning.
@@ -281,7 +284,7 @@ MODEL_RELOADED_LED_B = 0
 #Set the TRAIN_BEHAVIORS = True, and use the BEHAVIOR_LED_COLORS to give each behavior a color
 TRAIN_BEHAVIORS = False
 BEHAVIOR_LIST = ['Left_Lane', "Right_Lane"]
-BEHAVIOR_LED_COLORS =[ (0, 10, 0), (10, 0, 0) ] #RGB tuples 0-100 per chanel
+BEHAVIOR_LED_COLORS = [(0, 10, 0), (10, 0, 0)]  #RGB tuples 0-100 per chanel
 
 #Localizer
 #The localizer is a neural network that can learn to predict its location on the track.
