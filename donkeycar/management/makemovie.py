@@ -57,10 +57,10 @@ class MakeMovie(object):
                 print("ERR>> salient visualization requires a model. Pass with the --model arg.")
                 parser.print_help()
 
-            if args.type not in ['linear', 'categorical']:
-                print("Model type {} is not supported. Only linear or categorical is supported for salient visualization".format(args.type))
-                parser.print_help()
-                return
+            #if args.type not in ['linear', 'categorical']:
+            #    print("Model type {} is not supported. Only linear or categorical is supported for salient visualization".format(args.type))
+            #    parser.print_help()
+            #    return
 
         self.tub = Tub(args.tub)
 
@@ -104,7 +104,7 @@ class MakeMovie(object):
             self.keras_part = get_model_by_type(args.type, cfg=cfg)
             self.keras_part.load(args.model)
             if args.salient:
-                self.do_salient = self.init_salient(self.keras_part.model)
+                self.do_salient = self.init_salient(self.keras_part.interpreter.model)
 
         print('making movie', args.out, 'from', num_frames, 'images')
         clip = mpy.VideoClip(self.make_frame, duration=((num_frames - 1) / cfg.DRIVE_LOOP_HZ))
@@ -149,7 +149,8 @@ class MakeMovie(object):
         if self.keras_part is None:
             return
 
-        expected = tuple(self.keras_part.get_input_shape()[1:])
+        #expected = tuple(self.keras_part.get_input_shape()[1:])
+        expected = self.keras_part.interpreter.model.inputs[0].shape[1:]
         actual = img.shape
 
         # if model expects grey-scale but got rgb, covert
@@ -182,7 +183,7 @@ class MakeMovie(object):
 
         pred_img = normalize_image(img)
         pred_img = pred_img.reshape((1,) + pred_img.shape)
-        angle_binned, _ = self.keras_part.model.predict(pred_img)
+        angle_binned, _ = self.keras_part.interpreter.predict(pred_img)
 
         x = 4
         dx = 4
