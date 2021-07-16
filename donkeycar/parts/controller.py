@@ -1614,7 +1614,6 @@ def get_js_controller(cfg):
                                 steering_scale=cfg.JOYSTICK_STEERING_SCALE,
                                 auto_record_on_throttle=cfg.AUTO_RECORD_ON_THROTTLE,
                                 dev_fn=cfg.JOYSTICK_DEVICE_FILE,
-                                mode=cfg.JOYSTICK_MODE,
                                 num_records_to_erase=cfg.DRIVE_LOOP_HZ)
 
     ctr.set_deadzone(cfg.JOYSTICK_DEADZONE)
