@@ -26,10 +26,10 @@ MAX_LOOPS = None        # the vehicle loop can abort after this many iterations,
 
 #CAMERA
 CAMERA_TYPE = "CSIC"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|D435|MOCK|IMAGE_LIST)
-IMAGE_W = 160
-IMAGE_H = 90
 #IMAGE_W = 160
-#IMAGE_H = 120
+#IMAGE_H = 90
+IMAGE_W = 160
+IMAGE_H = 120
 #IMAGE_W = 816
 #IMAGE_H = 616
 #IMAGE_W = 3264
@@ -165,13 +165,13 @@ USE_JOYSTICK_AS_DEFAULT = False     #when starting the manage.py, when True, wil
 JOYSTICK_MAX_THROTTLE = 1.0         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
 JOYSTICK_STEERING_SCALE = 1.0       #some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
 AUTO_RECORD_ON_THROTTLE = True      #if true, we will record whenever throttle is not zero. if false, you must manually toggle recording with some other trigger. Usually circle button on joystick.
-CONTROLLER_TYPE='rc4'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|rc4|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
+CONTROLLER_TYPE='F710'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|rc4|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
 USE_NETWORKED_JS = False            #should we listen for remote joystick control over the network?
 NETWORK_JS_SERVER_IP = "192.168.0.1"#when listening for network joystick control, which ip is serving this information
 JOYSTICK_DEADZONE = 0.01             # when non zero, this is the smallest throttle before recording triggered.
 JOYSTICK_THROTTLE_DIR = -1.0        # use -1.0 to flip forward/backward, use 1.0 to use joystick's natural forward/backward
 USE_FPV = False                     # send camera data to FPV webserver
-JOYSTICK_DEVICE_FILE = "/dev/input/js1" # this is the unix file use to access the joystick.
+JOYSTICK_DEVICE_FILE = "/dev/input/js0" # this is the unix file use to access the joystick.
 JOYSTICK_ADD_THROTTLE = 0.0         # constant throttle assist. 0.3: all corners can turn at speed 30. you can drive comfortably just by turning off the throttle before the corner.
 
 #For the categorical model, this limits the upper bound of the learned throttle
@@ -250,7 +250,7 @@ MODEL_RELOADED_LED_B = 0
 #Set the TRAIN_BEHAVIORS = True, and use the BEHAVIOR_LED_COLORS to give each behavior a color
 TRAIN_BEHAVIORS = False
 BEHAVIOR_LIST = ['Left_Lane', "Right_Lane"]
-BEHAVIOR_LED_COLORS =[ (0, 10, 0), (10, 0, 0) ] #RGB tuples 0-100 per chanel
+BEHAVIOR_LED_COLORS = [(0, 10, 0), (10, 0, 0)]  #RGB tuples 0-100 per chanel
 
 #Localizer
 #The localizer is a neural network that can learn to predice it's location on the track.
@@ -266,7 +266,7 @@ BUTTON_PRESS_NEW_TUB = False #when enabled, makes it easier to divide our data i
 #This enables that, and sets the path to the simualator and the environment.
 #You will want to download the simulator binary from: https://github.com/tawnkramer/donkey_gym/releases/download/v18.9/DonkeySimLinux.zip
 #then extract that and modify DONKEY_SIM_PATH.
-DONKEY_GYM = False
+DONKEY_GYM = True
 DONKEY_SIM_PATH = "remote" #"/home/tkramer/projects/sdsandbox/sdsim/build/DonkeySimLinux/donkey_sim.x86_64" when racing on virtual-race-league use "remote", or user "remote" when you want to start the sim manually first.
 # 
 # #Available simulator tracks
@@ -279,7 +279,7 @@ DONKEY_SIM_PATH = "remote" #"/home/tkramer/projects/sdsandbox/sdsim/build/Donkey
 # #donkey-minimonaco-track-v0
 # #donkey-warren-track-v0
 # #donkey-thunderhill-track-v0
-DONKEY_GYM_ENV_NAME = "donkey-warren-track-v0"
+DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0"
 # 
 GYM_CONF = { "body_style" : "donkey", "body_rgb" : (128, 128, 128), "car_name" : "car", "font_size" : 100} # body style(donkey|bare|car01) body rgb 0-255
 GYM_CONF["racer_name"] = "Your Name"

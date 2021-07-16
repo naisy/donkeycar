@@ -185,8 +185,7 @@ def drive(cfg):
     class DriveMode:
         def run(self, mode, 
                     user_angle, user_throttle,
-                    pilot_angle, pilot_throttle,
-                    assist):
+                    pilot_angle, pilot_throttle):
             if mode == 'user':
                 #print(user_angle, user_throttle)
                 return user_angle, user_throttle
@@ -194,13 +193,9 @@ def drive(cfg):
             elif mode == 'local_angle':
                 return pilot_angle, user_throttle
             
-            elif mode == 'assist':
-                if assist:
-                    angle = user_angle
-                    throttle = user_throttle + pilot_throttle
-                else:
-                    angle = user_angle
-                    throttle = user_throttle
+            else:
+                angle = user_angle
+                throttle = user_throttle
 
                 if angle > 1:
                     angle = 1.0
@@ -217,7 +212,7 @@ def drive(cfg):
         
     V.add(DriveMode(), 
           inputs=['user/mode', 'user/angle', 'user/throttle',
-                  'pilot/angle', 'pilot/throttle', 'assist/mode'], 
+                  'pilot/angle', 'pilot/throttle'], 
           outputs=['angle', 'throttle'])
     
 

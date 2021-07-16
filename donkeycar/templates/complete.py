@@ -165,7 +165,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         
         V.add(ctr, 
           inputs=['cam/image_array'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording', 'assist/mode'],
+          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
 
     else:
@@ -175,7 +175,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         
         V.add(ctr,
           inputs=['cam/image_array', 'tub/num_records'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording', 'assist/mode'],
+          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
 
     #this throttle filter will allow one tap back for esc reverse
@@ -228,8 +228,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
             elif mode == 'local_angle':
                 return 0.5
             elif mode == 'local':
-                return 0.1
-            elif mode == 'assist':
                 return 0.1
             return 0
 
@@ -432,21 +430,16 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
     class DriveMode:
         def run(self, mode,
                     user_angle, user_throttle,
-                    pilot_angle, pilot_throttle,
-                    assist):
+                    pilot_angle, pilot_throttle):
             if mode == 'user':
                 return user_angle, user_throttle
 
             elif mode == 'local_angle':
                 return pilot_angle if pilot_angle else 0.0, user_throttle
 
-            elif mode == 'assist':
-                if assist:
-                    angle = user_angle
-                    throttle = user_throttle + pilot_throttle
-                else:
-                    angle = user_angle
-                    throttle = user_throttle
+            else:
+                angle = user_angle
+                throttle = user_throttle
 
                 if angle > 1:
                     angle = 1.0
@@ -463,7 +456,7 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
 
     V.add(DriveMode(),
           inputs=['user/mode', 'user/angle', 'user/throttle',
-                  'pilot/angle', 'pilot/throttle', 'assist/mode'],
+                  'pilot/angle', 'pilot/throttle'],
           outputs=['angle', 'throttle'])
 
 
@@ -496,8 +489,6 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         '''
         def run(self, mode, recording):
             if mode == 'user':
-                return recording
-            elif mode == 'assist':
                 return recording
             return True
 

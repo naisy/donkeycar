@@ -106,8 +106,7 @@ class LineFollower:
         self.debug_display(cam_img, mask, max_yellow, confidense)
 
         recording = False # Set to true if desired to save camera frames
-        assist_mode = False # If True, AI output on when mode(user|local|local_angle|assist) is assist and assist_mode(assist|off, rc4 3ch button) is assit mode.
-        return self.steering, self.throttle, self.recording, assist_mode
+        return self.steering, self.throttle, self.recording
 
 
     def debug_display(self, cam_img, mask, max_yellow, confidense):

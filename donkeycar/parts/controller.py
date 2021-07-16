@@ -727,7 +727,6 @@ class JoystickController(object):
         self.estop_state = self.ES_IDLE
         self.chaos_monkey_steering = None
         self.dead_zone = 0.0
-        self.assist_mode = False
 
         self.button_down_trigger_map = {}
         self.button_up_trigger_map = {}
@@ -909,8 +908,7 @@ class JoystickController(object):
             self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop throttle_adder
         else:
             self.recording = True
-
-        print('recording:', self.recording)
+            print('recording:', self.recording)
 
 
     def increase_max_throttle(self):
@@ -1009,9 +1007,9 @@ class JoystickController(object):
                 return 0.0, self.throttle, self.mode, False
 
         if self.chaos_monkey_steering is not None:
-            return self.chaos_monkey_steering, self.throttle, self.mode, False, self.assist_mode
+            return self.chaos_monkey_steering, self.throttle, self.mode, False
 
-        return self.angle, self.throttle, self.mode, self.recording, self.assist_mode
+        return self.angle, self.throttle, self.mode, self.recording
 
 
     def run(self, img_arr=None):
@@ -1449,7 +1447,6 @@ class RC4ChanJoystickController(JoystickController):
     def __init__(self, *args, **kwargs):
         super(RC4ChanJoystickController, self).__init__(*args, **kwargs)
         self.manual_mode = False
-        self.assist_mode = False
 
     def init_js(self):
         #attempt to init joystick
@@ -1470,9 +1467,6 @@ class RC4ChanJoystickController(JoystickController):
         if self.mode == 'user':
             if self.manual_mode:
                 self.recording = True
-        elif self.mode == 'assist':
-            if self.assist_mode:
-                self.recording = True
         if reversed:
             val *= -1
         self.set_throttle(val)
@@ -1482,25 +1476,16 @@ class RC4ChanJoystickController(JoystickController):
             print("on_switch_ch3_manual")
             if not self.manual_mode:
                 self.manual_mode = True
-        elif self.mode == 'assist':
-            print("on_switch_ch3_assist")
-            if not self.assist_mode:
-                self.assist_mode = True
 
     def on_switch_ch3_auto(self):
         if self.mode == 'user':
             print("on_switch_ch3_auto")
-        elif self.mode == 'assist':
-            print("on_switch_ch3_off")
         self.recording = False
         self.manual_mode = False
-        self.assist_mode = False
         self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop throttle_adder
 
     def on_switch_ch4(self):
         if self.mode == 'user':
-            self.erase_last_N_records()
-        elif self.mode == 'assist':
             self.erase_last_N_records()
 
     def init_trigger_maps(self):
@@ -1651,7 +1636,7 @@ if __name__ == "__main__":
     v = donkeycar.vehicle.Vehicle()
     p = PyGamePS4JoystickController()
     v.add(p, inputs=['cam/image_array'],
-          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording', 'assist/mode'],
+          outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
     v.start(max_loop_count = 100)
     
