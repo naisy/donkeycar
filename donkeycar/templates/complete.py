@@ -490,12 +490,13 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
         steering = PWMSteering(controller=steering_controller,
                                         left_pulse=cfg.STEERING_LEFT_PWM,
+                                        steering_zero_pulse=cfg.STEERING_STOPPED_PWM,
                                         right_pulse=cfg.STEERING_RIGHT_PWM)
 
         throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
         throttle = PWMThrottle(controller=throttle_controller,
                                         max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                                        zero_pulse=cfg.THROTTLE_STOPPED_PWM,
+                                        throttle_zero_pulse=cfg.THROTTLE_STOPPED_PWM,
                                         min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
         V.add(steering, inputs=['angle'], threaded=False)
@@ -551,13 +552,14 @@ def drive(cfg, model_path=None, use_joystick=False, model_type=None, camera_type
         from donkeycar.parts.actuator import PWMSteering, PWMThrottle, PiGPIO_PWM
         steering_controller = PiGPIO_PWM(cfg.STEERING_PWM_PIN, freq=cfg.STEERING_PWM_FREQ, inverted=cfg.STEERING_PWM_INVERTED)
         steering = PWMSteering(controller=steering_controller,
-                                        left_pulse=cfg.STEERING_LEFT_PWM, 
+                                        left_pulse=cfg.STEERING_LEFT_PWM,
+                                        steering_zero_pulse=cfg.STEERING_STOPPED_PWM,
                                         right_pulse=cfg.STEERING_RIGHT_PWM)
         
         throttle_controller = PiGPIO_PWM(cfg.THROTTLE_PWM_PIN, freq=cfg.THROTTLE_PWM_FREQ, inverted=cfg.THROTTLE_PWM_INVERTED)
         throttle = PWMThrottle(controller=throttle_controller,
                                             max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                                            zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
+                                            throttle_zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
                                             min_pulse=cfg.THROTTLE_REVERSE_PWM)
         V.add(steering, inputs=['angle'], threaded=True)
         V.add(throttle, inputs=['throttle'], threaded=True)

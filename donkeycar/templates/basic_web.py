@@ -169,13 +169,14 @@ def drive(cfg, model_path=None, model_type=None):
 
     steering_controller = PCA9685(cfg.STEERING_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
     steering = PWMSteering(controller=steering_controller,
-                                    left_pulse=cfg.STEERING_LEFT_PWM, 
+                                    left_pulse=cfg.STEERING_LEFT_PWM,
+                                    steering_zero_pulse=cfg.STEERING_STOPPED_PWM,
                                     right_pulse=cfg.STEERING_RIGHT_PWM)
     
     throttle_controller = PCA9685(cfg.THROTTLE_CHANNEL, cfg.PCA9685_I2C_ADDR, busnum=cfg.PCA9685_I2C_BUSNUM)
     throttle = PWMThrottle(controller=throttle_controller,
                                     max_pulse=cfg.THROTTLE_FORWARD_PWM,
-                                    zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
+                                    throttle_zero_pulse=cfg.THROTTLE_STOPPED_PWM, 
                                     min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
     V.add(steering, inputs=['angle'])

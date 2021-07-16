@@ -245,6 +245,9 @@ class WebSocketCalibrateAPI(tornado.websocket.WebSocketHandler):
                 if 'STEERING_LEFT_PWM' in config:
                     self.application.drive_train['steering'].left_pulse = config['STEERING_LEFT_PWM']
 
+                if 'STEERING_STOPPED_PWM' in config:
+                    self.application.drive_train['steering'].steering_zero_pulse = config['STEERING_STOPPED_PWM']
+
                 if 'STEERING_RIGHT_PWM' in config:
                     self.application.drive_train['steering'].right_pulse = config['STEERING_RIGHT_PWM']
 
@@ -252,7 +255,7 @@ class WebSocketCalibrateAPI(tornado.websocket.WebSocketHandler):
                     self.application.drive_train['throttle'].max_pulse = config['THROTTLE_FORWARD_PWM']
 
                 if 'THROTTLE_STOPPED_PWM' in config:
-                    self.application.drive_train['throttle'].zero_pulse = config['THROTTLE_STOPPED_PWM']
+                    self.application.drive_train['throttle'].throttle_zero_pulse = config['THROTTLE_STOPPED_PWM']
 
                 if 'THROTTLE_REVERSE_PWM' in config:
                     self.application.drive_train['throttle'].min_pulse = config['THROTTLE_REVERSE_PWM']

@@ -184,13 +184,15 @@ class PWMSteering:
     def __init__(self,
                  controller=None,
                  left_pulse=290,
-                 right_pulse=490):
+                 right_pulse=490,
+                 steering_zero_pulse=350):
 
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
-        self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                                        self.left_pulse, self.right_pulse)
+        self.steering_zero_pulse = steering_zero_pulse
+        self.pulse = steering_zero_pulse
+
         self.running = True
         print('PWM Steering created')
 
@@ -200,9 +202,14 @@ class PWMSteering:
 
     def run_threaded(self, angle):
         # map absolute angle to angle that vehicle can implement.
-        self.pulse = dk.utils.map_range(angle,
-                                        self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                                        self.left_pulse, self.right_pulse)
+        if angle > 0:
+            self.pulse = dk.utils.map_range(angle,
+                                            0, self.RIGHT_ANGLE,
+                                            self.steering_zero_pulse, self.right_pulse)
+        else:
+            self.pulse = dk.utils.map_range(angle,
+                                            self.LEFT_ANGLE, 0,
+                                            self.left_pulse, self.steering_zero_pulse)
 
     def run(self, angle):
         self.run_threaded(angle)
@@ -210,7 +217,7 @@ class PWMSteering:
 
     def shutdown(self):
         # set steering straight
-        self.pulse = 0
+        self.run(0)
         time.sleep(0.3)
         self.running = False
 
@@ -227,13 +234,13 @@ class PWMThrottle:
                  controller=None,
                  max_pulse=300,
                  min_pulse=490,
-                 zero_pulse=350):
+                 throttle_zero_pulse=350):
 
         self.controller = controller
         self.max_pulse = max_pulse
         self.min_pulse = min_pulse
-        self.zero_pulse = zero_pulse
-        self.pulse = zero_pulse
+        self.throttle_zero_pulse = throttle_zero_pulse
+        self.pulse = throttle_zero_pulse
 
         # send zero pulse to calibrate ESC
         print("Init ESC")
@@ -241,7 +248,7 @@ class PWMThrottle:
         time.sleep(0.01)
         self.controller.set_pulse(self.min_pulse)
         time.sleep(0.01)
-        self.controller.set_pulse(self.zero_pulse)
+        self.controller.set_pulse(self.throttle_zero_pulse)
         time.sleep(1)
         self.running = True
         print('PWM Throttle created')
@@ -253,10 +260,10 @@ class PWMThrottle:
     def run_threaded(self, throttle):
         if throttle > 0:
             self.pulse = dk.utils.map_range(throttle, 0, self.MAX_THROTTLE,
-                                            self.zero_pulse, self.max_pulse)
+                                            self.throttle_zero_pulse, self.max_pulse)
         else:
             self.pulse = dk.utils.map_range(throttle, self.MIN_THROTTLE, 0,
-                                            self.min_pulse, self.zero_pulse)
+                                            self.min_pulse, self.throttle_zero_pulse)
 
     def run(self, throttle):
         self.run_threaded(throttle)
@@ -743,28 +750,34 @@ class ArdPWMSteering:
     def __init__(self,
                  controller=None,
                  left_pulse=60,
-                 right_pulse=120):
+                 right_pulse=120,
+                 steering_zero_pulse=90):
 
         self.controller = controller
         self.left_pulse = left_pulse
         self.right_pulse = right_pulse
-        self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                                        self.left_pulse, self.right_pulse)
+        self.steering_zero_pulse = steering_zero_pulse
+        self.pulse = steering_zero_pulse
+
         self.running = True
         print('Arduino PWM Steering created')
 
     def run(self, angle):
         # map absolute angle to angle that vehicle can implement.
-        self.pulse = dk.utils.map_range(angle,
-                                        self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                                        self.left_pulse, self.right_pulse)
+        if angle > 0:
+            self.pulse = dk.utils.map_range(angle,
+                                            0, self.RIGHT_ANGLE,
+                                            self.steering_zero_pulse, self.right_pulse)
+        else:
+            self.pulse = dk.utils.map_range(angle,
+                                            self.LEFT_ANGLE, 0,
+                                            self.left_pulse, self.steering_zero_pulse)
         self.controller.set_servo_pulse(self.pulse)
 
     def shutdown(self):
         # set steering straight
-        self.pulse = dk.utils.map_range(0, self.LEFT_ANGLE, self.RIGHT_ANGLE,
-                                        self.left_pulse, self.right_pulse)
-        time.sleep(0.3)
+        self.run(0)
+        time.sleep(0.3) # Waiting time for the servo to move to the neutral position.
         self.running = False
 
 
@@ -781,13 +794,13 @@ class ArdPWMThrottle:
                  controller=None,
                  max_pulse=105,
                  min_pulse=75,
-                 zero_pulse=90):
+                 throttle_zero_pulse=90):
 
         self.controller = controller
         self.max_pulse = max_pulse
         self.min_pulse = min_pulse
-        self.zero_pulse = zero_pulse
-        self.pulse = zero_pulse
+        self.throttle_zero_pulse = throttle_zero_pulse
+        self.pulse = throttle_zero_pulse
 
         # send zero pulse to calibrate ESC
         print("Init ESC")
@@ -795,7 +808,7 @@ class ArdPWMThrottle:
         time.sleep(0.01)
         self.controller.set_esc_pulse(self.min_pulse)
         time.sleep(0.01)
-        self.controller.set_esc_pulse(self.zero_pulse)
+        self.controller.set_esc_pulse(self.throttle_zero_pulse)
         time.sleep(1)
         self.running = True
         print('Arduino PWM Throttle created')
@@ -803,10 +816,10 @@ class ArdPWMThrottle:
     def run(self, throttle):
         if throttle > 0:
             self.pulse = dk.utils.map_range(throttle, 0, self.MAX_THROTTLE,
-                                            self.zero_pulse, self.max_pulse)
+                                            self.throttle_zero_pulse, self.max_pulse)
         else:
             self.pulse = dk.utils.map_range(throttle, self.MIN_THROTTLE, 0,
-                                            self.min_pulse, self.zero_pulse)
+                                            self.min_pulse, self.throttle_zero_pulse)
         self.controller.set_esc_pulse(self.pulse)
 
     def shutdown(self):
