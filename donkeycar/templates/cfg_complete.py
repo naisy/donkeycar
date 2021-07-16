@@ -25,22 +25,41 @@ DRIVE_LOOP_HZ = 20      # the vehicle loop will pause if faster than this speed.
 MAX_LOOPS = None        # the vehicle loop can abort after this many iterations, when given a positive integer.
 
 #CAMERA
-CAMERA_TYPE = "PICAM"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|D435|MOCK|IMAGE_LIST)
+CAMERA_TYPE = "CSIC"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|D435|MOCK|IMAGE_LIST)
 IMAGE_W = 160
-IMAGE_H = 120
+IMAGE_H = 90
+#IMAGE_W = 160
+#IMAGE_H = 120
+#IMAGE_W = 816
+#IMAGE_H = 616
+#IMAGE_W = 3264
+#IMAGE_H = 2464
+#IMAGE_W = 204
+#IMAGE_H = 154
+#IMAGE_W = 224
+#IMAGE_H = 224
 IMAGE_DEPTH = 3         # default RGB=3, make 1 for mono
 CAMERA_FRAMERATE = DRIVE_LOOP_HZ
 CAMERA_VFLIP = False
 CAMERA_HFLIP = False
 # For CSIC camera - If the camera is mounted in a rotated position, changing the below parameter will correct the output frame orientation
-CSIC_CAM_GSTREAMER_FLIP_PARM = 0 # (0 => none , 4 => Flip horizontally, 6 => Flip vertically)
+# nvvidconv flip-method
+# 0: Identity - no rotation (default)
+# 1: Counterclockwise - 90 degrees
+# 2: Rotate - 180 degrees
+# 3: Clockwise - 90 degrees
+# 4: Horizontal flip
+# 5: Upper right diagonal flip
+# 6: Vertical flip
+# 7: Upper-left diagonal
+CSIC_CAM_GSTREAMER_FLIP_PARM = 2
 
 # For IMAGE_LIST camera
 # PATH_MASK = "~/mycar/data/tub_1_20-03-12/*.jpg"
 
 #9865, over rides only if needed, ie. TX2..
 PCA9685_I2C_ADDR = 0x40     #I2C address, use i2cdetect to validate this number
-PCA9685_I2C_BUSNUM = None   #None will auto detect, which is fine on the pi. But other platforms should specify the bus num.
+PCA9685_I2C_BUSNUM = 1   #None will auto detect, which is fine on the pi. But other platforms should specify the bus num.
 
 #SSD1306_128_32
 USE_SSD1306_128_32 = False    # Enable the SSD_1306 OLED Display
@@ -55,9 +74,10 @@ SSD1306_128_32_I2C_BUSNUM = 1 # I2C bus number
 DRIVE_TRAIN_TYPE = "SERVO_ESC" # SERVO_ESC|DC_STEER_THROTTLE|DC_TWO_WHEEL|SERVO_HBRIDGE_PWM|PIGPIO_PWM|MM1|MOCK
 
 #STEERING
-STEERING_CHANNEL = 1            #channel on the 9685 pwm board 0-15
-STEERING_LEFT_PWM = 460         #pwm value for full left steering
-STEERING_RIGHT_PWM = 290        #pwm value for full right steering
+STEERING_CHANNEL = 0              #channel on the 9685 pwm board 0-15
+STEERING_LEFT_PWM = 484           # 1970us
+STEERING_STOPPED_PWM = 374        # 1523us
+STEERING_RIGHT_PWM = 262          # 1070us
 
 #STEERING FOR PIGPIO_PWM
 STEERING_PWM_PIN = 13           #Pin numbering according to Broadcom numbers
@@ -65,10 +85,10 @@ STEERING_PWM_FREQ = 50          #Frequency for PWM
 STEERING_PWM_INVERTED = False   #If PWM needs to be inverted
 
 #THROTTLE
-THROTTLE_CHANNEL = 0            #channel on the 9685 pwm board 0-15
-THROTTLE_FORWARD_PWM = 500      #pwm value for max forward throttle
-THROTTLE_STOPPED_PWM = 370      #pwm value for no movement
-THROTTLE_REVERSE_PWM = 220      #pwm value for max reverse throttle
+OTTLE_CHANNEL = 1            #channel on the 9685 pwm board 0-15
+THROTTLE_FORWARD_PWM = 489       # 1991us
+THROTTLE_STOPPED_PWM = 378       # 1540us
+THROTTLE_REVERSE_PWM = 268       # 1091us
 
 #THROTTLE FOR PIGPIO_PWM
 THROTTLE_PWM_PIN = 18           #Pin numbering according to Broadcom numbers
@@ -97,11 +117,11 @@ HBRIDGE_PIN_RIGHT_BWD = 13
 DEFAULT_MODEL_TYPE = 'linear'   #(linear|categorical|rnn|imu|behavior|3d|localizer|latent)
 BATCH_SIZE = 128                #how many records to use when doing one pass of gradient decent. Use a smaller number if your gpu is running out of memory.
 TRAIN_TEST_SPLIT = 0.8          #what percent of records to use for training. the remaining used for validation.
-MAX_EPOCHS = 100                #how many times to visit all records of your data
+MAX_EPOCHS = 50                #how many times to visit all records of your data
 SHOW_PLOT = True                #would you like to see a pop up display of final loss?
 VERBOSE_TRAIN = True             #would you like to see a progress bar with text during training?
 USE_EARLY_STOP = True           #would you like to stop the training if we see it's not improving fit?
-EARLY_STOP_PATIENCE = 5         #how many epochs to wait before no improvement
+EARLY_STOP_PATIENCE = 10         #how many epochs to wait before no improvement
 MIN_DELTA = .0005               #early stop will want this much loss change before calling it improved.
 PRINT_MODEL_SUMMARY = True      #print layers and weights to stdout
 OPTIMIZER = None                #adam, sgd, rmsprop, etc.. None accepts default
@@ -142,18 +162,17 @@ WEB_INIT_MODE = "user"              # which control mode to start in. one of use
 
 #JOYSTICK
 USE_JOYSTICK_AS_DEFAULT = False     #when starting the manage.py, when True, will not require a --js option to use the joystick
-JOYSTICK_MAX_THROTTLE = 0.5         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
+JOYSTICK_MAX_THROTTLE = 1.0         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
 JOYSTICK_STEERING_SCALE = 1.0       #some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
 AUTO_RECORD_ON_THROTTLE = True      #if true, we will record whenever throttle is not zero. if false, you must manually toggle recording with some other trigger. Usually circle button on joystick.
-CONTROLLER_TYPE='ps3'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|rc4|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
+CONTROLLER_TYPE='rc4'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|rc4|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
 USE_NETWORKED_JS = False            #should we listen for remote joystick control over the network?
 NETWORK_JS_SERVER_IP = "192.168.0.1"#when listening for network joystick control, which ip is serving this information
-JOYSTICK_DEADZONE = 0.0             # when non zero, this is the smallest throttle before recording triggered.
+JOYSTICK_DEADZONE = 0.01             # when non zero, this is the smallest throttle before recording triggered.
 JOYSTICK_THROTTLE_DIR = -1.0        # use -1.0 to flip forward/backward, use 1.0 to use joystick's natural forward/backward
 USE_FPV = False                     # send camera data to FPV webserver
-JOYSTICK_DEVICE_FILE = "/dev/input/js0" # this is the unix file use to access the joystick.
-JOYSTICK_MODE = 'user'              #(user|assist) assist is only rc4.
-JOYSTICK_ADD_THROTTLE = 0.3         # constant throttle assist. all corners can turn at speed 30. you can drive comfortably just by turning off the throttle before the corner.
+JOYSTICK_DEVICE_FILE = "/dev/input/js1" # this is the unix file use to access the joystick.
+JOYSTICK_ADD_THROTTLE = 0.0         # constant throttle assist. 0.3: all corners can turn at speed 30. you can drive comfortably just by turning off the throttle before the corner.
 
 #For the categorical model, this limits the upper bound of the learned throttle
 #it's very IMPORTANT that this value is matched from the training PC config.py and the robot.py
@@ -248,13 +267,25 @@ BUTTON_PRESS_NEW_TUB = False #when enabled, makes it easier to divide our data i
 #You will want to download the simulator binary from: https://github.com/tawnkramer/donkey_gym/releases/download/v18.9/DonkeySimLinux.zip
 #then extract that and modify DONKEY_SIM_PATH.
 DONKEY_GYM = False
-DONKEY_SIM_PATH = "path to sim" #"/home/tkramer/projects/sdsandbox/sdsim/build/DonkeySimLinux/donkey_sim.x86_64" when racing on virtual-race-league use "remote", or user "remote" when you want to start the sim manually first.
-DONKEY_GYM_ENV_NAME = "donkey-mountain-track-v0" # ("donkey-generated-track-v0"|"donkey-generated-roads-v0"|"donkey-warehouse-v0"|"donkey-avc-sparkfun-v0")
+DONKEY_SIM_PATH = "remote" #"/home/tkramer/projects/sdsandbox/sdsim/build/DonkeySimLinux/donkey_sim.x86_64" when racing on virtual-race-league use "remote", or user "remote" when you want to start the sim manually first.
+# 
+# #Available simulator tracks
+# #donkey-warehouse-v0
+# #donkey-generated-roads-v0
+# #donkey-avc-sparkfun-v0
+# #donkey-generated-track-v0
+# #donkey-roboracingleague-track-v0
+# #donkey-waveshare-v0
+# #donkey-minimonaco-track-v0
+# #donkey-warren-track-v0
+# #donkey-thunderhill-track-v0
+DONKEY_GYM_ENV_NAME = "donkey-warren-track-v0"
+# 
 GYM_CONF = { "body_style" : "donkey", "body_rgb" : (128, 128, 128), "car_name" : "car", "font_size" : 100} # body style(donkey|bare|car01) body rgb 0-255
 GYM_CONF["racer_name"] = "Your Name"
 GYM_CONF["country"] = "Place"
 GYM_CONF["bio"] = "I race robots."
-
+# 
 SIM_HOST = "127.0.0.1"              # when racing on virtual-race-league use host "trainmydonkey.com"
 SIM_ARTIFICIAL_LATENCY = 0          # this is the millisecond latency in controls. Can use useful in emulating the delay when useing a remote server. values of 100 to 400 probably reasonable.
 
