@@ -155,20 +155,6 @@ def drive(cfg, model_path=None, model_type=None):
             elif mode == 'local_angle':
                 return pilot_angle if pilot_angle else 0.0, user_throttle
             
-            else:
-                angle = user_angle
-                throttle = user_throttle
-
-                if angle > 1:
-                    angle = 1.0
-                elif angle < -1:
-                    angle = -1.0
-                if throttle > 1.0:
-                    throttle = 1.0
-                elif throttle < -1:
-                    throttle = -1.0
-                return angle, throttle
-
             else: 
                 return pilot_angle if pilot_angle else 0.0, pilot_throttle * cfg.AI_THROTTLE_MULT if pilot_throttle else 0.0
         

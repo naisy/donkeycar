@@ -85,7 +85,7 @@ STEERING_PWM_FREQ = 50          #Frequency for PWM
 STEERING_PWM_INVERTED = False   #If PWM needs to be inverted
 
 #THROTTLE
-OTTLE_CHANNEL = 1            #channel on the 9685 pwm board 0-15
+THROTTLE_CHANNEL = 1             #channel on the 9685 pwm board 0-15
 THROTTLE_FORWARD_PWM = 489       # 1991us
 THROTTLE_STOPPED_PWM = 378       # 1540us
 THROTTLE_REVERSE_PWM = 268       # 1091us
