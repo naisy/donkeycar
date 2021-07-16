@@ -1007,8 +1007,7 @@ class JoystickController(object):
             self.throttle = (self.throttle_dir * self.last_throttle_axis_val * self.throttle_scale) # stop add_throttle
         else:
             self.recording = True
-
-        print('recording:', self.recording)
+            print('start recording')
 
 
     def increase_max_throttle(self):
