@@ -2,6 +2,8 @@ from collections import namedtuple
 from donkeycar.parts.keras import KerasPilot
 import json
 import numpy as np
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import pycuda.driver as cuda
 import pycuda.autoinit
 from pathlib import Path
