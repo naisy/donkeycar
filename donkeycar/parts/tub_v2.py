@@ -31,8 +31,6 @@ class Tub(object):
         if not os.path.exists(self.images_base_path):
             os.makedirs(self.images_base_path, exist_ok=True)
 
-        self.initial_ms = int(round(time.time() * 1000)) # for convert_record
-
 
     def write_record(self, record=None, ms=None):
         """
@@ -73,7 +71,7 @@ class Tub(object):
             contents['_timestamp_ms'] = int(round(time.time() * 1000))
         else:
             # convert tub_v1 to tub_v2
-            contents['_timestamp_ms'] = self.initial_ms + ms
+            contents['_timestamp_ms'] = ms
         contents['_index'] = self.manifest.current_index
         contents['_session_id'] = self.manifest.session_id
 
