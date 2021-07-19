@@ -31,7 +31,10 @@ class Tub(object):
         if not os.path.exists(self.images_base_path):
             os.makedirs(self.images_base_path, exist_ok=True)
 
-    def write_record(self, record=None):
+        self.initial_ms = int(round(time.time() * 1000)) # for convert_record
+
+
+    def write_record(self, record=None, ms=None):
         """
         Can handle various data types including images.
         """
@@ -65,11 +68,17 @@ class Tub(object):
                     contents[key] = name
 
         # Private properties
-        contents['_timestamp_ms'] = int(round(time.time() * 1000))
+        if ms is None:
+            # tub_v2 recording
+            contents['_timestamp_ms'] = int(round(time.time() * 1000))
+        else:
+            # convert tub_v1 to tub_v2
+            contents['_timestamp_ms'] = self.initial_ms + ms
         contents['_index'] = self.manifest.current_index
         contents['_session_id'] = self.manifest.session_id
 
         self.manifest.write_record(contents)
+
 
     def delete_records(self, record_indexes):
         self.manifest.delete_records(record_indexes)

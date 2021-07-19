@@ -48,13 +48,14 @@ def convert_to_tub_v2(paths, output_path):
                 contents = Path(record_path).read_text()
                 record = json.loads(contents)
                 image_path = record['cam/image_array']
+                ms = record['milliseconds']
                 current_index = int(image_path.split('_')[0])
                 image_path = os.path.join(legacy_tub.path, image_path)
                 image_data = Image.open(image_path)
                 record['cam/image_array'] = image_data
                 # first record or they are continuous, just append
                 if not previous_index or current_index == previous_index + 1:
-                    output_tub.write_record(record)
+                    output_tub.write_record(record, ms)
                     previous_index = current_index
                 # otherwise fill the gap with empty records
                 else:
@@ -66,7 +67,7 @@ def convert_to_tub_v2(paths, output_path):
                     delete_list = []
                     while previous_index < current_index:
                         idx = output_tub.manifest.current_index
-                        output_tub.write_record(empty_record)
+                        output_tub.write_record(empty_record, ms)
                         delete_list.append(idx)
                         previous_index += 1
                     output_tub.delete_records(delete_list)
