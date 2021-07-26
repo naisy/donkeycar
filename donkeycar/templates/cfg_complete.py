@@ -332,6 +332,7 @@ DONKEY_SIM_PATH = "remote" #"/home/tkramer/projects/sdsandbox/sdsim/build/Donkey
 #donkey-minimonaco-track-v0
 #donkey-warren-track-v0
 #donkey-thunderhill-track-v0
+#donkey-circuit-launch-track-v0
 DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0"
 
 GYM_CONF = { "body_style" : "donkey", "body_rgb" : (128, 128, 128), "car_name" : "car", "font_size" : 100} # body style(donkey|bare|car01) body rgb 0-255
