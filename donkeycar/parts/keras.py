@@ -219,7 +219,7 @@ class KerasPilot(ABC):
     def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
         """ Return x from record, default returns only image array"""
         assert isinstance(record, TubRecord), "TubRecord required"
-        img_arr = record.image(cached=True)
+        img_arr = record.image(cached=False)
         return img_arr
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
@@ -416,7 +416,7 @@ class KerasMemory(KerasLinear):
         assert len(records) == self.mem_length + 1, \
             f"Record list of length {self.mem_length} required but " \
             f"{len(records)} was passed"
-        img_arr = records[-1].image(cached=True)
+        img_arr = records[-1].image(cached=False)
         mem = [[r.underlying['user/angle'], r.underlying['user/throttle']]
                for r in records[:-1]]
         return img_arr, np.array(mem).reshape((2 * self.mem_length,))
@@ -549,7 +549,7 @@ class KerasIMU(KerasPilot):
 
     def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'
-        img_arr = record.image(cached=True)
+        img_arr = record.image(cached=False)
         imu_arr = [record.underlying[k] for k in self.imu_vec]
         return img_arr, np.array(imu_arr)
 
@@ -610,7 +610,7 @@ class KerasBehavioral(KerasCategorical):
 
     def x_transform(self, record: Union[TubRecord, List[TubRecord]]) -> XY:
         assert isinstance(record, TubRecord), 'TubRecord expected'
-        img_arr = record.image(cached=True)
+        img_arr = record.image(cached=False)
         bhv_arr = record.underlying['behavior/one_hot_state_array']
         return img_arr, np.array(bhv_arr)
 
@@ -721,7 +721,7 @@ class KerasLSTM(KerasPilot):
         assert len(records) == self.seq_length, \
             f"Record list of length {self.seq_length} required but " \
             f"{len(records)} was passed"
-        img_arrays = [rec.image(cached=True) for rec in records]
+        img_arrays = [rec.image(cached=False) for rec in records]
         return np.array(img_arrays)
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
@@ -813,7 +813,7 @@ class Keras3D_CNN(KerasPilot):
         assert len(records) == self.seq_length, \
             f"Record list of length {self.seq_length} required but " \
             f"{len(records)} was passed"
-        img_arrays = [rec.image(cached=True) for rec in records]
+        img_arrays = [rec.image(cached=False) for rec in records]
         return np.array(img_arrays)
 
     def x_translate(self, x: XY) -> Dict[str, Union[float, np.ndarray]]:
