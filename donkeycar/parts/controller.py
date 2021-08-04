@@ -1487,6 +1487,7 @@ class RC4ChanJoystickController(JoystickController):
 
     def on_switch_ch4(self):
         if self.mode == 'user':
+            self.recording = False
             self.erase_last_N_records()
 
     def init_trigger_maps(self):
