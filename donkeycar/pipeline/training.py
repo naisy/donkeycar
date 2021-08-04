@@ -127,6 +127,23 @@ def train(cfg: Config, tub_paths: str, model: str = None,
     train_size = len(training_pipe)
     val_size = len(validation_pipe)
 
+    ### training/validation length limit. Large validation datasets cause memory leaks.
+    train_limit = cfg.TRAIN_LIMIT
+    train_len = len(training_records)
+    if train_limit is not None and train_len > train_limit:
+        train_decrease = train_limit/train_len
+        _train_size = math.ceil(train_size * train_decrease)
+        print(f'train steps decrease from {train_size} to {_train_size}')
+        train_size = _train_size
+
+    val_limit = cfg.VALIDATION_LIMIT
+    val_len = len(validation_records)
+    if val_limit is not None and val_len > val_limit:
+        val_decrease = val_limit/val_len
+        _val_size = math.ceil(val_size * val_decrease)
+        print(f'val steps decrease from {val_size} to {_val_size}')
+        val_size = _val_size
+
     assert val_size > 0, "Not enough validation data, decrease the batch " \
                          "size or add more data."
 
