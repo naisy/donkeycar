@@ -11,6 +11,8 @@ import tensorflow as tf
 import tensorrt as trt
 
 HostDeviceMemory = namedtuple('HostDeviceMemory', 'host_memory device_memory')
+TRT8 = 8
+TRT7 = 7
 
 class TensorRTLinear(KerasPilot):
     '''
@@ -32,13 +34,21 @@ class TensorRTLinear(KerasPilot):
     def load(self, model_path):
         uff_model = Path(model_path)
         metadata_path = Path('%s/%s.metadata' % (uff_model.parent.as_posix(), uff_model.stem))
-        with open(metadata_path.as_posix(), 'r') as metadata, trt.Builder(self.logger) as builder, builder.create_network() as network, trt.UffParser() as parser:
+        with open(metadata_path.as_posix(), 'r') as metadata, trt.Builder(self.logger) as builder, builder.create_network() as network, trt.UffParser() as parser, builder.create_builder_config() as trt_config:
+            trt_version = int(trt.__version__[0])
+            assert trt_version == TRT8 or trt_version == TRT7, "Version of TensorRT is too old, please \
+                update TensorRT to version >= 7.0"
+            if trt_version == TRT7:
+                logger.warning("TensorRT7 is deprecated and may be removed in the following release.")
             
             # Without this max_workspace_size setting, I was getting:
             # Building CUDA Engine
             # [TensorRT] ERROR: Internal error: could not find any implementation for node 2-layer MLP, try increasing the workspace size with IBuilder::setMaxWorkspaceSize()
             # [TensorRT] ERROR: ../builder/tacticOptimizer.cpp (1230) - OutOfMemory Error in computeCosts: 0
-            builder.max_workspace_size = 1 << 20 #common.GiB(1)
+            if trt_version == TRT8:
+                trt_config.max_workspace_size = 1 << 20 #common.GiB(1)
+            else:
+                builder.max_workspace_size = 1 << 20 #common.GiB(1)
             builder.max_batch_size = 1
 
             metadata = json.loads(metadata.read())
@@ -55,7 +65,10 @@ class TensorRTLinear(KerasPilot):
             print('Parsing TensorRT Network')
             parser.parse(uff_model.as_posix(), network)
             print('Building CUDA Engine')
-            self.engine = builder.build_cuda_engine(network)
+            if trt_version == TRT8:
+                self.engine = builder.build_engine(network, trt_config)
+            else:
+                self.engine = builder.build_cuda_engine(network)
             # Allocate buffers
             print('Allocating Buffers')
             self.inputs, self.outputs, self.bindings, self.stream = TensorRTLinear.allocate_buffers(self.engine)
