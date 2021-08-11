@@ -529,7 +529,27 @@ def train(cfg, tub_names, model_name, transfer_model, model_type, continuous, au
         steps_per_epoch = 100
     
     val_steps = num_val // cfg.BATCH_SIZE
-    print('steps_per_epoch', steps_per_epoch)
+
+    ### training/validation length limit. Large validation datasets cause memory leaks.
+    train_limit = cfg.TRAIN_LIMIT
+    train_len = num_train
+    train_size = steps_per_epoch
+    if train_limit is not None and train_len > train_limit:
+        train_decrease = train_limit/train_len
+        _train_size = math.ceil(train_size * train_decrease)
+        print(f'train steps decrease from {train_size} to {_train_size}')
+        train_size = _train_size
+        steps_per_epoch = train_size
+
+    val_limit = cfg.VALIDATION_LIMIT
+    val_len = num_val
+    val_size = val_steps
+    if val_limit is not None and val_len > val_limit:
+        val_decrease = val_limit/val_len
+        _val_size = math.ceil(val_size * val_decrease)
+        print(f'val steps decrease from {val_size} to {_val_size}')
+        val_size = _val_size
+        val_steps = val_size
 
     cfg.model_type = model_type
 
