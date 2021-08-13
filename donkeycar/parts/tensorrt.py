@@ -94,6 +94,14 @@ class TensorRTLinear(KerasPilot):
             print(f'Load model from {model_path}.')
             return engine
 
+    def save_engine(self, engine, model_path):
+        TRT_LOGGER = trt.Logger()
+        serialized_engine = engine.serialize()
+        with trt.Runtime(TRT_LOGGER) as runtime:
+            engine = runtime.deserialize_cuda_engine(serialized_engine)
+        with open(model_path, "wb") as f:
+            f.write(engine.serialize())
+
     def run(self, image):
         # Channel first image format
         image = image.transpose((2,0,1))
