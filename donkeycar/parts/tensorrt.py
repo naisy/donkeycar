@@ -101,6 +101,7 @@ class TensorRTLinear(KerasPilot):
             engine = runtime.deserialize_cuda_engine(serialized_engine)
         with open(model_path, "wb") as f:
             f.write(engine.serialize())
+            print(f'Save model to {model_path}')
 
     def run(self, image):
         # Channel first image format
