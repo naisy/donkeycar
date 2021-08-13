@@ -31,7 +31,22 @@ class TensorRTLinear(KerasPilot):
     def compile(self):
         print('Nothing to compile')
 
+
     def load(self, model_path):
+        if '.uff' in model_path:
+            self.engine = self.load_uff(model_path)
+            output_model = model_path[:-4]
+            self.save_engine(self.engine, f'{output_model}.engine')
+        elif '.engine' in model_path:
+            self.engine = self.load_engine(model_path)
+
+        # Allocate buffers
+        print('Allocating Buffers')
+        self.inputs, self.outputs, self.bindings, self.stream = TensorRTLinear.allocate_buffers(self.engine)
+        print('Ready')
+
+
+    def load_uff(self, model_path):
         uff_model = Path(model_path)
         metadata_path = Path('%s/%s.metadata' % (uff_model.parent.as_posix(), uff_model.stem))
         with open(metadata_path.as_posix(), 'r') as metadata, trt.Builder(self.logger) as builder, builder.create_network() as network, trt.UffParser() as parser, builder.create_builder_config() as trt_config:
@@ -66,13 +81,18 @@ class TensorRTLinear(KerasPilot):
             parser.parse(uff_model.as_posix(), network)
             print('Building CUDA Engine')
             if trt_version == TRT8:
-                self.engine = builder.build_engine(network, trt_config)
+                engine = builder.build_engine(network, trt_config)
             else:
-                self.engine = builder.build_cuda_engine(network)
-            # Allocate buffers
-            print('Allocating Buffers')
-            self.inputs, self.outputs, self.bindings, self.stream = TensorRTLinear.allocate_buffers(self.engine)
-            print('Ready')
+                engine = builder.build_cuda_engine(network)
+            return engine
+
+    def load_engine(self, model_path):
+        # load tensorrt model from file
+        TRT_LOGGER = trt.Logger()
+        with open(model_path, 'rb') as f, trt.Runtime(TRT_LOGGER) as runtime:
+            engine = runtime.deserialize_cuda_engine(f.read())
+            print(f'Load model from {model_path}.')
+            return engine
 
     def run(self, image):
         # Channel first image format
