@@ -158,6 +158,7 @@ def train(cfg: Config, tub_paths: str, model: str = None,
                        epochs=cfg.MAX_EPOCHS,
                        verbose=cfg.VERBOSE_TRAIN,
                        min_delta=cfg.MIN_DELTA,
+                       use_early_stop=cfg.USE_EARLY_STOP,
                        patience=cfg.EARLY_STOP_PATIENCE,
                        show_plot=cfg.SHOW_PLOT)
 

@@ -151,6 +151,7 @@ class KerasPilot(ABC):
               validation_steps: int,
               epochs: int,
               verbose: int = 1,
+              use_early_stop = True,
               min_delta: float = .0005,
               patience: int = 5,
               show_plot: bool = False) -> tf.keras.callbacks.History:
@@ -161,14 +162,21 @@ class KerasPilot(ABC):
         model = self.interpreter.model
         self.compile()
 
-        callbacks = [
-            EarlyStopping(monitor='val_loss',
-                          patience=patience,
-                          min_delta=min_delta),
-            ModelCheckpoint(monitor='val_loss',
-                            filepath=model_path,
-                            save_best_only=True,
-                            verbose=verbose)]
+        if use_early_stop:
+            callbacks = [
+                EarlyStopping(monitor='val_loss',
+                              patience=patience,
+                              min_delta=min_delta),
+                ModelCheckpoint(monitor='val_loss',
+                                filepath=model_path,
+                                save_best_only=True,
+                                verbose=verbose)]
+        else:
+            callbacks = [
+                ModelCheckpoint(monitor='val_loss',
+                                filepath=model_path,
+                                save_best_only=True,
+                                verbose=verbose)]
 
         history: tf.keras.callbacks.History = model.fit(
             x=train_data,
