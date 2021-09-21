@@ -197,10 +197,8 @@
     orientation: 'horizontal'
     on_lr:
         msg = f'Setting range, '
-        if root.lr[0] < root.lr[1]: msg += (f'affecting records inside [{root.lr[0]}, {root.lr[1]}) ' + \
-        '- you can affect records outside by setting left > right')
-        else: msg += (f'affecting records outside ({root.lr[1]}, {root.lr[0]}] ' + \
-        '- you can affect records inside by setting left < right')
+        if root.lr[0] <= root.lr[1]: msg += (f'affecting records inside [{root.lr[0]}, {root.lr[1]}] ')
+        else: msg += (f'you can affect records inside by setting left < right')
         app.tub_screen.ids.status.text = msg
     Button:
         text: 'Set left'
@@ -209,8 +207,7 @@
         text: 'Set right'
         on_press: root.set_lr(False)
     Label:
-        text: '[' + str(root.lr[0]) + ', ' + str(root.lr[1]) + ')'
-        # text: f'Index range [{root.lr[0]}, {root.lr[1]})'
+        text: '[' + str(root.lr[0]) + ', ' + str(root.lr[1]) + ']'
     Button:
         text: 'Delete'
         on_press:

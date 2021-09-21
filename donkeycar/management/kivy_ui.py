@@ -517,12 +517,11 @@ class TubEditor(PaddedBoxLayout):
         """ Deletes or restores records in chosen range """
         tub = tub_screen().ids.tub_loader.tub
         if self.lr[1] >= self.lr[0]:
+            self.lr[1] += 1
             selected = list(range(*self.lr))
+            tub.delete_records(selected) if is_del else tub.restore_records(selected)
         else:
-            last_id = tub.manifest.current_index
-            selected = list(range(self.lr[0], last_id))
-            selected += list(range(self.lr[1]))
-        tub.delete_records(selected) if is_del else tub.restore_records(selected)
+            print(f'invalid range.')
 
 
 class TubFilter(PaddedBoxLayout):
