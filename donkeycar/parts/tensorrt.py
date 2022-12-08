@@ -9,6 +9,7 @@ import pycuda.autoinit
 from pathlib import Path
 import tensorflow as tf
 import tensorrt as trt
+import time
 
 HostDeviceMemory = namedtuple('HostDeviceMemory', 'host_memory device_memory')
 TRT8 = 8
@@ -27,6 +28,8 @@ class TensorRTLinear(KerasPilot):
         self.outputs = None
         self.bindings = None
         self.stream = None
+        self.run_start = time.time()
+        self.run_counter = 0
 
     def compile(self):
         print('Nothing to compile')
@@ -113,6 +116,12 @@ class TensorRTLinear(KerasPilot):
         np.copyto(image_input.host_memory, image)
         with self.engine.create_execution_context() as context:
             [throttle, steering] = TensorRTLinear.infer(context=context, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs, stream=self.stream)
+            self.run_counter += 1
+            current_time = time.time()
+            if current_time - self.run_start >= 1.0:
+                print(f'fps: {self.run_counter / (current_time - self.run_start)}, steering: {steering[0]}, throttle: {throttle[0]}')
+                self.run_start = current_time
+                self.run_counter = 0
             return steering[0], throttle[0]
 
     @classmethod

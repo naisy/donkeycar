@@ -35,16 +35,26 @@ class PCA9685:
         time.sleep(init_delay) # "Tamiya TBLE-02" makes a little leap otherwise
 
     def set_pulse(self, pulse):
-        try:
-            self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
-        except:
-            print("PCA9685 SET ERROR!")
+        retry_count = 0
+        is_ok = False
+        for retry_count in range(3):
+            try:
+                self.pwm.set_pwm(self.channel, 0, int(pulse * self.pwm_scale))
+                is_ok = True
+                break
+            except:
+                pass
+        if retry_count > 0:
+            print(f'set_pulse() retry:{retry_count} - {is_ok}')
+        """ fps counter
         self.pwm_counter += 1
         current_time = time.time()
         if current_time - self.pwm_start >= 1.0:
             print("channel: {} fps: {}".format(self.channel, self.pwm_counter / (current_time - self.pwm_start)))
             self.pwm_start = current_time
             self.pwm_counter = 0
+        """
+
 
     def run(self, pulse):
         self.set_pulse(pulse)
