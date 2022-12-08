@@ -108,7 +108,7 @@ class TensorRTLinear(KerasPilot):
 
     def run(self, image):
         # Channel first image format
-        #image = image.transpose((2,0,1))
+        image = image.transpose((2,0,1))
         # Flatten it to a 1D array.
         image = image.ravel()
         # The first input is the image. Copy to host memory.
