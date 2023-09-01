@@ -87,7 +87,9 @@ def drive(cfg, model_path=None, model_type=None):
         from donkeycar.parts.camera import CSICamera
         cam = CSICamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,
                         image_d=cfg.IMAGE_DEPTH, framerate=cfg.CAMERA_FRAMERATE,
-                        gstreamer_flip=cfg.CSIC_CAM_GSTREAMER_FLIP_PARM)
+                        gstreamer_flip=cfg.CSIC_CAM_GSTREAMER_FLIP_PARM,
+                        nvdewarper=cfg.NVDEWARPER,
+                        config_dewarper=cfg.CONFIG_DEWARPER_PATH)
     elif cfg.CAMERA_TYPE == "V4L":
         from donkeycar.parts.camera import V4LCamera
         cam = V4LCamera(image_w=cfg.IMAGE_W, image_h=cfg.IMAGE_H,

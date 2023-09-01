@@ -941,16 +941,18 @@ def core_cnn_layers(img_in, drop, l4_stride=1):
     :param l4_stride:       4-th layer stride, default 1
     :return:                stack of CNN layers
     """
+    k1 = 3  # 5x5 -> 3x3
+    k2 = 2  # 3x3 -> 2x2
     x = img_in
-    x = conv2d(24, 5, 2, 1)(x)
+    x = conv2d(24, k1, 2, 1)(x)  # 5x5 -> 3x3
     x = Dropout(drop)(x)
-    x = conv2d(32, 5, 2, 2)(x)
+    x = conv2d(32, k1, 2, 2)(x)
     x = Dropout(drop)(x)
-    x = conv2d(64, 5, 2, 3)(x)
+    x = conv2d(64, k1, 2, 3)(x)
     x = Dropout(drop)(x)
-    x = conv2d(64, 3, l4_stride, 4)(x)
+    x = conv2d(64, k2, l4_stride, 4)(x)
     x = Dropout(drop)(x)
-    x = conv2d(64, 3, 1, 5)(x)
+    x = conv2d(64, k2, 1, 5)(x)
     x = Dropout(drop)(x)
     x = Flatten(name='flattened')(x)
     return x

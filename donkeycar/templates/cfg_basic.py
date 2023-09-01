@@ -25,31 +25,54 @@ DRIVE_LOOP_HZ = 20
 MAX_LOOPS = None
 
 #CAMERA
-CAMERA_TYPE = "PICAM"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|D435|MOCK|IMAGE_LIST)
-IMAGE_W = 160
-IMAGE_H = 120
+CAMERA_TYPE = "CSIC"   # (PICAM|WEBCAM|CVCAM|CSIC|V4L|D435|MOCK|IMAGE_LIST)
+IMAGE_W = 160 # for car
+IMAGE_H = 90 # for car
+#IMAGE_W = 160 # for car with nvdewarper
+#IMAGE_H = 40 # for car with nvdewarper
+#IMAGE_W = 160 # for simulator
+#IMAGE_H = 120 # for simulator
+#IMAGE_W = 816
+#IMAGE_H = 616
+#IMAGE_W = 3264
+#IMAGE_H = 2464
+#IMAGE_W = 204
+#IMAGE_H = 154
+#IMAGE_W = 224
+#IMAGE_H = 224
 IMAGE_DEPTH = 3         # default RGB=3, make 1 for mono
 CAMERA_FRAMERATE = DRIVE_LOOP_HZ
 CAMERA_VFLIP = False
 CAMERA_HFLIP = False
 # For CSIC camera - If the camera is mounted in a rotated position, changing the below parameter will correct the output frame orientation
+# nvvidconv flip-method
+# 0: Identity - no rotation (default)
+# 1: Counterclockwise - 90 degrees
+# 2: Rotate - 180 degrees
+# 3: Clockwise - 90 degrees
+# 4: Horizontal flip
+# 5: Upper right diagonal flip
+# 6: Vertical flip
+# 7: Upper-left diagonal
 CSIC_CAM_GSTREAMER_FLIP_PARM = 0 # (0 => none , 4 => Flip horizontally, 6 => Flip vertically)
+NVDEWARPER = False  # if true, image width x height must be 160 x 40.
+CONFIG_DEWARPER = "/home/jetson/data/mycar4/config_dewarper.txt"
 
 #9865, over rides only if needed, ie. TX2..
 PCA9685_I2C_ADDR = 0x40
 PCA9685_I2C_BUSNUM = None
 
 #STEERING
-STEERING_CHANNEL = 1
-STEERING_LEFT_PWM = 460
-STEERING_STOPPED_PWM = 370
-STEERING_RIGHT_PWM = 290
+STEERING_CHANNEL = 0              #channel on the 9685 pwm board 0-15
+STEERING_LEFT_PWM = 262           # 1070us
+STEERING_STOPPED_PWM = 374        # 1523us
+STEERING_RIGHT_PWM = 484          # 1970us
 
 #THROTTLE
-THROTTLE_CHANNEL = 0
-THROTTLE_FORWARD_PWM = 500
-THROTTLE_STOPPED_PWM = 370
-THROTTLE_REVERSE_PWM = 220
+THROTTLE_CHANNEL = 1            #channel on the 9685 pwm board 0-15
+THROTTLE_FORWARD_PWM = 484       # 1970us
+THROTTLE_STOPPED_PWM = 374       # 1523us
+THROTTLE_REVERSE_PWM = 262       # 1070us
 
 DRIVE_TRAIN_TYPE = "I2DC_SERVO" # I2C_SERVO|DC_STEER_THROTTLE|DC_TWO_WHEEL|SERVO_HBRIDGE_PWM|PIGPIO_PWM|MM1|MOCK
 
@@ -76,13 +99,13 @@ DEFAULT_AI_FRAMEWORK = 'tensorflow'  # The default AI framework to use. Choose f
 DEFAULT_MODEL_TYPE = 'linear' #(linear|categorical|rnn|imu|behavior|3d|localizer|latent)
 CREATE_TF_LITE = True  # automatically create tflite model in training
 CREATE_TENSOR_RT = False  # automatically create tensorrt model in training
-BATCH_SIZE = 128
+BATCH_SIZE = 16
 TRAIN_TEST_SPLIT = 0.8
-MAX_EPOCHS = 100
+MAX_EPOCHS = 50
 SHOW_PLOT = True
 VERBOSE_TRAIN = True
 USE_EARLY_STOP = True
-EARLY_STOP_PATIENCE = 5
+EARLY_STOP_PATIENCE = 10
 MIN_DELTA = .0005
 PRINT_MODEL_SUMMARY = True      #print layers and weights to stdout
 OPTIMIZER = None                #adam, sgd, rmsprop, etc.. None accepts default
@@ -114,7 +137,7 @@ TRANSFORMATIONS = []
 AUG_MULTIPLY_RANGE = (0.5, 1.5)
 AUG_BLUR_RANGE = (0.0, 3.0)
 # Number of pixels to crop, requires 'CROP' in TRANSFORMATIONS to be set
-ROI_CROP_TOP = 45
+ROI_CROP_TOP = 0
 ROI_CROP_BOTTOM = 0
 ROI_CROP_RIGHT = 0
 ROI_CROP_LEFT = 0
@@ -138,13 +161,13 @@ AUTO_CREATE_NEW_TUB = False     #create a new tub (tub_YY_MM_DD) directory when 
 
 #JOYSTICK
 USE_JOYSTICK_AS_DEFAULT = False     #when starting the manage.py, when True, will not require a --js option to use the joystick
-JOYSTICK_MAX_THROTTLE = 0.5         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
+JOYSTICK_MAX_THROTTLE = 1.0         #this scalar is multiplied with the -1 to 1 throttle value to limit the maximum throttle. This can help if you drop the controller or just don't need the full speed available.
 JOYSTICK_STEERING_SCALE = 1.0       #some people want a steering that is less sensitve. This scalar is multiplied with the steering -1 to 1. It can be negative to reverse dir.
 AUTO_RECORD_ON_THROTTLE = True      #if true, we will record whenever throttle is not zero. if false, you must manually toggle recording with some other trigger. Usually circle button on joystick.
-CONTROLLER_TYPE='ps3'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
+CONTROLLER_TYPE='F710'               #(ps3|ps4|xbox|nimbus|wiiu|F710|rc3|rc4|MM1|custom) custom will run the my_joystick.py controller written by the `donkey createjs` command
 USE_NETWORKED_JS = False            #should we listen for remote joystick control over the network?
 NETWORK_JS_SERVER_IP = "192.168.0.1"#when listening for network joystick control, which ip is serving this information
-JOYSTICK_DEADZONE = 0.0             # when non zero, this is the smallest throttle before recording triggered.
+JOYSTICK_DEADZONE = 0.05             # when non zero, this is the smallest throttle before recording triggered.
 JOYSTICK_THROTTLE_DIR = -1.0        # use -1.0 to flip forward/backward, use 1.0 to use joystick's natural forward/backward
 USE_FPV = False                     # send camera data to FPV webserver
 JOYSTICK_DEVICE_FILE = "/dev/input/js0" # this is the unix file use to access the joystick.
@@ -165,7 +188,18 @@ AI_THROTTLE_MULT = 1.0              # this multiplier will scale every throttle 
 #then extract that and modify DONKEY_SIM_PATH.
 DONKEY_GYM = False
 DONKEY_SIM_PATH = "path to sim" #"/home/tkramer/projects/sdsandbox/sdsim/build/DonkeySimLinux/donkey_sim.x86_64" when racing on virtual-race-league use "remote", or user "remote" when you want to start the sim manually first.
-DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0" # ("donkey-generated-track-v0"|"donkey-generated-roads-v0"|"donkey-warehouse-v0"|"donkey-avc-sparkfun-v0")
+#Available simulator tracks
+#donkey-circuit-launch-track-v0
+#donkey-minimonaco-track-v0
+#donkey-roboracingleague-track-v0
+#donkey-avc-sparkfun-v0
+#donkey-generated-roads-v0
+#donkey-mountain-track-v0
+#donkey-warren-track-v0
+#donkey-waveshare-v0
+#donkey-generated-track-v0
+#donkey-warehouse-v0
+DONKEY_GYM_ENV_NAME = "donkey-generated-track-v0"
 GYM_CONF = { "body_style" : "donkey", "body_rgb" : (128, 128, 128), "car_name" : "car", "font_size" : 100} # body style(donkey|bare|car01) body rgb 0-255
 GYM_CONF["racer_name"] = "Your Name"
 GYM_CONF["country"] = "Place"

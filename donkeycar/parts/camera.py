@@ -134,14 +134,43 @@ class CSICamera(BaseCamera):
     gstreamer init string from https://github.com/NVIDIA-AI-IOT/jetbot/blob/master/jetbot/camera.py
     '''
     def gstreamer_pipeline(self, capture_width=3280, capture_height=2464, output_width=224, output_height=224, framerate=21, flip_method=0) :
-        return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink max-buffers=1 drop=True' % (
-                capture_width, capture_height, framerate, flip_method, output_width, output_height)
-    
+        dewarp = self.nvdewarper
+        if dewarp:
+            sensor_id = 0
+            camera_width = capture_width
+            camera_height = capture_height
+            camera_fps = framerate
+            flip_method = flip_method
+            output_width = output_width
+            output_height = 90
+            dewarped_width = output_width
+            dewarped_height = 40
+            config_dewarper = self.config_dewarper
+
+            gst_pipeline = (
+                f"nvarguscamerasrc sensor_id={sensor_id} bufapi-version=1 ! "
+                #f"nvarguscamerasrc sensor_id={sensor_id} bufapi-version=1 exposuretimerange='34000 50000' wbmode=0 exposurecompensation=0.5 gainrange='1 2' ispdigitalgainrange='1 32' ! "
+                #f"nvarguscamerasrc sensor_id={sensor_id} bufapi-version=1 exposuretimerange='500000 5000000' wbmode=0 exposurecompensation=0.5 gainrange='1 8' ispdigitalgainrange='1 64' ! "
+                f"video/x-raw(memory:NVMM), width=(int){camera_width}, height=(int){camera_height}, format=(string)NV12, framerate=(fraction){camera_fps}/1 ! "
+                f"nvvideoconvert flip-method={flip_method} ! "
+                f"video/x-raw(memory:NVMM),width=(int){output_width},height=(int){output_height} ! "
+                f"queue ! nvdewarper config-file={config_dewarper} ! queue ! "
+                f"nvvideoconvert ! "
+                f"video/x-raw, width=(int){dewarped_width}, height=(int){dewarped_height}, format=(string)BGRx ! "
+                f"videoconvert ! video/x-raw, format=(string)BGR ! "
+                f"appsink max-buffers=1 drop=True"
+            )
+
+            return gst_pipeline
+        else: 
+            return 'nvarguscamerasrc ! video/x-raw(memory:NVMM), width=%d, height=%d, format=(string)NV12, framerate=(fraction)%d/1 ! nvvidconv flip-method=%d ! nvvidconv ! video/x-raw, width=(int)%d, height=(int)%d, format=(string)BGRx ! videoconvert ! appsink max-buffers=1 drop=True' % (
+                    capture_width, capture_height, framerate, flip_method, output_width, output_height)
+
     #def __init__(self, image_w=160, image_h=120, image_d=3, capture_width=3280, capture_height=2464, framerate=60, gstreamer_flip=0):
     # USE 360
     #def __init__(self, image_w=204, image_h=154, image_d=3, capture_width=3264, capture_height=2464, framerate=21, gstreamer_flip=0):
     # USE 60FPS (OpenCV maximum fps is 60) 
-    def __init__(self, image_w=160, image_h=90, image_d=3, capture_width=1280, capture_height=720, framerate=60, gstreamer_flip=0):
+    def __init__(self, image_w=160, image_h=90, image_d=3, capture_width=1280, capture_height=720, framerate=60, gstreamer_flip=0, nvdewarper=False, config_dewarper=None):
 
         '''
         gstreamer_flip = 0 - no flip
@@ -158,6 +187,8 @@ class CSICamera(BaseCamera):
         self.capture_height = capture_height
         self.framerate = framerate
         self.camera_calibration = False
+        self.nvdewarper = nvdewarper
+        self.config_dewarper = config_dewarper
 
         if self.camera_calibration:
             self.pers_file = 'perspectiveCalibrate.xml'
