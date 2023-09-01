@@ -941,8 +941,17 @@ def core_cnn_layers(img_in, drop, l4_stride=1):
     :param l4_stride:       4-th layer stride, default 1
     :return:                stack of CNN layers
     """
-    k1 = 3  # 5x5 -> 3x3
-    k2 = 2  # 3x3 -> 2x2
+    height = img_in.shape[1]
+    width = img_in.shape[2]
+    reduce_kernel = False
+    print(f"Height: {height}, Width: {width}")
+    if height < 61 or width < 61:
+        reduce_kernel = True
+    k1 = 5
+    k2 = 3
+    if reduce_kernel:
+        k1 = 3  # 5x5 -> 3x3
+        k2 = 2  # 3x3 -> 2x2
     x = img_in
     x = conv2d(24, k1, 2, 1)(x)  # 5x5 -> 3x3
     x = Dropout(drop)(x)
