@@ -162,21 +162,33 @@ class KerasPilot(ABC):
         model = self.interpreter.model
         self.compile()
 
+        # ReduceLROnPlateauコールバックを作成
+        reduce_lr = tf.keras.callbacks.ReduceLROnPlateau(
+            monitor='val_loss',  # 監視するメトリック
+            factor=0.1,  # 学習率を減少させる因子（new_lr = lr * factor）
+            patience=3,  # 検証ロスが改善されないエポック数
+            verbose=True  # ログに学習率の減少を表示するかどうか
+        )
+
+        # 他のコールバックとともにReduceLROnPlateauコールバックをリストに追加
+        callbacks = [reduce_lr]
+
         if use_early_stop:
-            callbacks = [
+            callbacks.append(
                 EarlyStopping(monitor='val_loss',
                               patience=patience,
-                              min_delta=min_delta),
+                              min_delta=min_delta))
+            callbacks.append(
                 ModelCheckpoint(monitor='val_loss',
                                 filepath=model_path,
                                 save_best_only=True,
-                                verbose=verbose)]
+                                verbose=verbose))
         else:
-            callbacks = [
+            callbacks.append(
                 ModelCheckpoint(monitor='val_loss',
                                 filepath=model_path,
                                 save_best_only=True,
-                                verbose=verbose)]
+                                verbose=verbose))
 
         history: tf.keras.callbacks.History = model.fit(
             x=train_data,
