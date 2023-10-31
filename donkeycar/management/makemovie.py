@@ -403,12 +403,16 @@ class MakeMovie(object):
         ellipse = self.draw_dot_circle2(ellipse, x,y,r_pilot+1+self.scale//4, 1+self.scale//4, (0,255,218), -1, 4*self.scale, self.pilot_throttle, True)
         ellipse = self.draw_dot_circle2(ellipse, x,y,r_user+1+self.scale//4, 1+self.scale//4, (0,255,218), -1, 4*self.scale, self.user_throttle, False)
 
+        if width >= height:
+            min_pixels = height
+        else:
+            min_pixels = width
 
         # draw speed meter
         #self.draw_analog_meter(ellipse, self.pilot_speed)
         self.draw_analog_direction_meter(ellipse, self.pilot_angle, self.pilot_throttle)
         ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4), self.pilot_throttle, 18*self.scale, pilot_trans)
-        ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4)*2-(width//10)*self.control_score, self.user_throttle, 12*self.scale, user_trans)
+        ellipse = self.draw_digital_meter(ellipse, r_mask-(2+self.scale//4)*2-(min_pixels//10)*self.control_score, self.user_throttle, 12*self.scale, user_trans)
 
         #self.draw_analog_meter(ellipse, -0.75)
         #print(f"r_pilot: {r_pilot}")
