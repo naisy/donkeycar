@@ -912,7 +912,7 @@ class KerasLatent(KerasPilot):
         return steering[0][0], throttle[0][0]
 
 
-def conv2d(filters, kernel, strides, layer_num, activation='relu'):
+def old_conv2d(filters, kernel, strides, layer_num, activation='relu'):
     """
     Helper function to create a standard valid-padded convolutional layer
     with square kernel and strides and unified naming convention
@@ -931,7 +931,7 @@ def conv2d(filters, kernel, strides, layer_num, activation='relu'):
                          name='conv2d_' + str(layer_num))
 
 
-def core_cnn_layers(img_in, drop, l4_stride=1):
+def old_core_cnn_layers(img_in, drop, l4_stride=1):
     """
     Returns the core CNN layers that are shared among the different models,
     like linear, imu, behavioural
@@ -963,6 +963,85 @@ def core_cnn_layers(img_in, drop, l4_stride=1):
     x = Dropout(drop)(x)
     x = conv2d(64, k2, 1, 5)(x)
     x = Dropout(drop)(x)
+    x = Flatten(name='flattened')(x)
+    return x
+
+
+def layer(x, filters, kernel, strides, layer_num, drop, activation='relu'):
+    """
+    Helper function to create a standard valid-padded convolutional layer
+    with square kernel and strides and unified naming convention
+
+    :param filters:     channel dimension of the layer
+    :param kernel:      creates (kernel, kernel) kernel matrix dimension
+    :param strides:     creates (strides, strides) stride
+    :param layer_num:   used in labelling the layer
+    :param activation:  activation, defaults to relu
+    :return:            tf.keras Convolution2D layer
+    """
+    x = Convolution2D(filters=filters,
+                      kernel_size=kernel,
+                      strides=strides,
+                      activation=activation,
+                      name='conv2d_' + str(layer_num),
+                      padding='same')(x)
+    #x = MaxPooling2D(pool_size=(2, 2))(x)
+    x = Dropout(drop)(x)
+    return x
+
+
+def core_cnn_layers(img_in, drop, l4_stride=1):
+    """
+    Returns the core CNN layers that are shared among the different models,
+    like linear, imu, behavioural
+
+    :param img_in:          input layer of network
+    :param drop:            dropout rate
+    :param l4_stride:       4-th layer stride, default 1
+    :return:                stack of CNN layers
+    """
+    height = img_in.shape[1]
+    width = img_in.shape[2]
+    print(f"Height: {height}, Width: {width}")
+
+    x = img_in
+
+    # First Conv Layer
+    layer_num = 1
+    filters = 12
+    strides = (2, 2)
+    kernel = (5, 5)
+    x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
+
+    # Second Conv Layer
+    layer_num = 2
+    filters = 12
+    strides = (2, 2)
+    kernel = (5, 5)
+    x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
+
+    # Third Conv Layer
+    layer_num = 3
+    filters = 24
+    strides = (2, 2)
+    kernel = (5, 5)
+    x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
+
+    # Fourth Conv Layer
+    layer_num = 4
+    filters = 24
+    strides = (1, 1)
+    kernel = (3, 3)
+    x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
+
+    # Fifth Conv Layer
+    layer_num = 5
+    filters = 24
+    strides = (1, 1)
+    kernel = (3, 3)
+    x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
+
+    # Flatten and Return
     x = Flatten(name='flattened')(x)
     return x
 
