@@ -5,10 +5,18 @@ from typing import Dict, List, Tuple
 import pandas as pd
 import logging
 from donkeycar.config import Config
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 FILE = 'database.json'
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.float32):
+            return float(obj)
+        return super(CustomJSONEncoder, self).default(obj)
 
 
 class PilotDatabase:
@@ -20,6 +28,7 @@ class PilotDatabase:
     def read(self) -> List[Dict]:
         if os.path.exists(self.path):
             with open(self.path, "r") as read_file:
+                print(f'read_file: {read_file}')
                 data = json.load(read_file)
                 return data
         else:
@@ -48,7 +57,7 @@ class PilotDatabase:
     def write(self):
         try:
             with open(self.path, "w") as data_file:
-                json.dump(self.entries, data_file)
+                json.dump(self.entries, data_file, cls=CustomJSONEncoder)
         except Exception as e:
             logger.error(f'Failed writing database file: {e}')
 
