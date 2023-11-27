@@ -177,7 +177,8 @@ WEB_CONTROL_PORT = int(os.getenv("WEB_CONTROL_PORT", 8887))  # which port to lis
 WEB_INIT_MODE = "user"              # which control mode to start in. one of user|local_angle|local. Setting local will start in ai mode.
 
 #DRIVING
-AI_THROTTLE_MULT = 1.0              # this multiplier will scale every throttle value for all output from NN models
+STEERING_GAIN = 1.0                 # this multiplier will scale every steering value for all output from NN models
+THROTTLE_GAIN = 1.0                 # this multiplier will scale every throttle value for all output from NN models
 
 
 #DonkeyGym

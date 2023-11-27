@@ -13,8 +13,8 @@ class AlexaController(object):
         self.running = True
         self.debug = debug
         self.ctr = ctr
-        self.cfg = cfg  # Pass the config object for altering AI_THROTTLE_MULT
-        self.DEFAULT_AI_THROTTLE_MULT = self.cfg.AI_THROTTLE_MULT
+        self.cfg = cfg  # Pass the config object for altering THROTTLE_GAIN
+        self.DEFAULT_THROTTLE_GAIN = self.cfg.THROTTLE_GAIN
 
         if self.cfg.ALEXA_DEVICE_CODE is None:
             raise Exception("Please set cfg.ALEXA_DEVICE_CODE in myconfig.py")
@@ -57,16 +57,16 @@ class AlexaController(object):
             if command == "autopilot":
                 self.ctr.mode = "local"
             elif command == "speedup":
-                self.cfg.AI_THROTTLE_MULT += 0.05
+                self.cfg.THROTTLE_GAIN += 0.05
             elif command == "slowdown":
-                self.cfg.AI_THROTTLE_MULT -= 0.05
+                self.cfg.THROTTLE_GAIN -= 0.05
             elif command == "stop":
                 self.ctr.mode = "user"
-                self.cfg.AI_THROTTLE_MULT = self.DEFAULT_AI_THROTTLE_MULT
+                self.cfg.THROTTLE_GAIN = self.DEFAULT_THROTTLE_GAIN
 
             if self.debug:
-                self.log("mode = {}, cfg.AI_THROTTLE_MULT={}".format(
-                    self.ctr.mode, self.cfg.AI_THROTTLE_MULT))
+                self.log("mode = {}, cfg.THROTTLE_GAIN={}".format(
+                    self.ctr.mode, self.cfg.THROTTLE_GAIN))
 
             time.sleep(0.25)  # Give a break between requests
 

@@ -254,7 +254,8 @@ AI_LAUNCH_ENABLE_BUTTON = 'R2'      # this keypress will enable this boost. It m
 AI_LAUNCH_KEEP_ENABLED = False      # when False ( default) you will need to hit the AI_LAUNCH_ENABLE_BUTTON for each use. This is safest. When this True, is active on each trip into "local" ai mode.
 
 #Scale the output of the throttle of the ai pilot for all model types.
-AI_THROTTLE_MULT = 1.0              # this multiplier will scale every throttle value for all output from NN models
+STEERING_GAIN = 1.0                 # this multiplier will scale every steering value for all output from NN models
+THROTTLE_GAIN = 1.0                 # this multiplier will scale every throttle value for all output from NN models
 
 #Path following
 PATH_FILENAME = "donkey_path.pkl"   # the path will be saved to this filename
