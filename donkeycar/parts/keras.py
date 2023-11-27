@@ -1020,35 +1020,35 @@ def core_cnn_layers(img_in, drop, l4_stride=1):
 
     # First Conv Layer
     layer_num = 1
-    filters = 12
+    filters = 32
     strides = (2, 2)
     kernel = (5, 5)
     x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
 
     # Second Conv Layer
     layer_num = 2
-    filters = 12
+    filters = 32
     strides = (2, 2)
     kernel = (5, 5)
     x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
 
     # Third Conv Layer
     layer_num = 3
-    filters = 24
+    filters = 64
     strides = (2, 2)
     kernel = (5, 5)
     x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
 
     # Fourth Conv Layer
     layer_num = 4
-    filters = 24
+    filters = 64
     strides = (1, 1)
     kernel = (3, 3)
     x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
 
     # Fifth Conv Layer
     layer_num = 5
-    filters = 24
+    filters = 64
     strides = (1, 1)
     kernel = (3, 3)
     x = layer(x, filters=filters, kernel=kernel, strides=strides, layer_num=layer_num, drop=drop)
