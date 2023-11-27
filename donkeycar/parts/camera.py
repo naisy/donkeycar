@@ -142,9 +142,11 @@ class CSICamera(BaseCamera):
             camera_fps = framerate
             flip_method = flip_method
             output_width = output_width
-            output_height = 90
+            #output_height = 90
+            output_height = 180
             dewarped_width = output_width
-            dewarped_height = 40
+            #dewarped_height = 40
+            dewarped_height = 24
             config_dewarper = self.config_dewarper
 
             gst_pipeline = (
