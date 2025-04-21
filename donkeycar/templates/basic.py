@@ -36,11 +36,20 @@ class DriveMode:
             return user_angle, user_throttle
         elif mode == 'local_angle':
             return pilot_angle if pilot_angle else 0.0, user_throttle
-        else:  # local angle
+        else:  # local pilot
+            # Steering
             pilot_angle = pilot_angle * cfg.STEERING_GAIN if pilot_angle else 0.0
             pilot_angle = max(-1.0, min(1.0, pilot_angle))
-            pilot_throttle = pilot_throttle * cfg.THROTTLE_GAIN if pilot_throttle else 0.0
-            pilot_throttle = max(-1.0, min(1.0, pilot_throttle))
+
+            # Throttle
+            if abs(pilot_throttle) <= cfg.MIN_THROTTLE:
+                pass
+            else:
+                new_throttle = pilot_throttle * cfg.THROTTLE_GAIN
+                if abs(new_throttle) <= cfg.MIN_THROTTLE:
+                    pilot_throttle = cfg.MIN_THROTTLE if new_throttle > 0 else -cfg.MIN_THROTTLE
+                else:
+                    pilot_throttle = max(-1.0, min(1.0, new_throttle))
             return pilot_angle, pilot_throttle
 
 

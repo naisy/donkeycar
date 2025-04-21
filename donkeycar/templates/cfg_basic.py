@@ -179,7 +179,7 @@ WEB_INIT_MODE = "user"              # which control mode to start in. one of use
 #DRIVING
 STEERING_GAIN = 1.0                 # this multiplier will scale every steering value for all output from NN models
 THROTTLE_GAIN = 1.0                 # this multiplier will scale every throttle value for all output from NN models
-
+MIN_THROTTLE = 0.3                  # MIN_THROTTLE is the minimum threshold of the throttle value to prevent the motor from failing to operate when THROTTLE_GAIN makes the throttle too small.
 
 #DonkeyGym
 #Only on Ubuntu linux, you can use the simulator as a virtual donkey and

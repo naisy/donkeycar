@@ -385,6 +385,7 @@ AI_LAUNCH_KEEP_ENABLED = False      # when False ( default) you will need to hit
 #Scale the output of the throttle of the ai pilot for all model types.
 STEERING_GAIN = 1.0                 # this multiplier will scale every steering value for all output from NN models
 THROTTLE_GAIN = 1.0                 # this multiplier will scale every throttle value for all output from NN models
+MIN_THROTTLE = 0.3                  # MIN_THROTTLE is the minimum threshold of the throttle value to prevent the motor from failing to operate when THROTTLE_GAIN makes the throttle too small.
 
 #Path following
 PATH_FILENAME = "donkey_path.pkl"   # the path will be saved to this filename
